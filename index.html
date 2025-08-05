@@ -1,0 +1,1721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Philippine Power System Cost & Tariff Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        .btn {
+            border-radius: 0.5rem;
+            padding: 0.6rem 1.25rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+        .input-field {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            border: 1px solid #d1d5db;
+            background-color: #f9fafb;
+        }
+        .input-field:read-only {
+            background-color: #e5e7eb;
+            cursor: not-allowed;
+        }
+        .input-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #4b5563;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+        .tab-button {
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 4px solid transparent;
+            color: #6b7280;
+            white-space: nowrap;
+        }
+        .tab-button.active {
+            color: #1d4ed8;
+            border-bottom-color: #2563eb;
+        }
+        .prose h4 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .prose ul {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+        }
+        .prose li {
+            margin-bottom: 0.5rem;
+        }
+        .accordion-header {
+            cursor: pointer;
+            transition: background-color: 0.2s;
+        }
+        .accordion-header:hover {
+            background-color: #f9fafb;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            padding: 0 1.5rem;
+        }
+        .accordion-content.open {
+            max-height: 1000px; /* Increased max-height to prevent overflow */
+            padding: 1.5rem;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            max-width: 90%;
+            width: 600px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #4b5563;
+        }
+        tbody tr:hover {
+            background-color: #f0f4f8;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="card p-4 mb-8">
+            <div class="flex flex-col sm:flex-row justify-between items-center">
+                <div class="text-center sm:text-left">
+                    <div class="flex items-center justify-center sm:justify-start space-x-3">
+                        <h1 class="text-xl md:text-3xl font-bold text-gray-800">Power System Cost & Tariff Simulator</h1>
+                        <span class="bg-gray-200 text-gray-700 text-xs font-semibold px-2 py-1 rounded-full">Version 3.141</span>
+                    </div>
+                    <p class="text-gray-500 text-sm md:text-base mt-1">A Decision-Support Tool for Energy Policy Analysis</p>
+                    <p class="mt-2 font-bold" style="color: #FF2400;">Developed by Engr. Franz Xyrlo Tobias, PEE</p>
+                </div>
+                <div class="flex items-center space-x-2 mt-4 sm:mt-0">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Flag_of_the_Philippines.svg/125px-Flag_of_the_Philippines.svg.png" alt="PH Flag" class="h-8 rounded" onerror="this.style.display='none'">
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Panel: Inputs & Scenarios -->
+            <div class="lg:col-span-1 space-y-6">
+                
+                <div class="card">
+                    <!-- Scenario Control Accordion -->
+                    <div class="accordion-header border-b p-4 flex justify-between items-center" data-accordion="scenario-control">
+                        <h2 class="text-xl font-bold text-gray-800">Scenario Control</h2>
+                        <svg class="w-6 h-6 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                    <div class="accordion-content open" id="scenario-control-content">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="baselineSelect" class="input-label">Baseline Year</label>
+                                <select id="baselineSelect" class="input-field">
+                                    <option value="as_of_april_2025">2025 (Actual as of April)</option>
+                                    <option value="projected_2024">2024 (Projected)</option>
+                                    <option value="baseline_2022">2022 (Actual)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="gridSelect" class="input-label">Grid Selection</label>
+                                <select id="gridSelect" class="input-field">
+                                    <option value="national">National Grid</option>
+                                    <option value="luzon">Luzon</option>
+                                    <option value="visayas">Visayas</option>
+                                    <option value="mindanao">Mindanao</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="scenarioSelect" class="input-label">Pre-defined Scenarios</label>
+                                <select id="scenarioSelect" class="input-field">
+                                    <option value="custom">Custom Scenario</option>
+                                    <option value="committed_projects">Committed Power Plants</option>
+                                    <option value="gea1_to_3_awarded">GEA 1-3 Awarded</option>
+                                    <option value="gea4_to_5_target">GEA 4-5 Target</option>
+                                    <option value="gea1_to_5_total">GEA 1-5 Total</option>
+                                    <option value="gea1_to_5_50_percent">GEA 1-5 (50% Operational)</option>
+                                    <option value="pep_ref">PEP 2050 Reference Scenario (REF)</option>
+                                    <option value="pep_ces1">PEP 2050 CES (19GW OSW)</option>
+                                    <option value="pep_ces2">PEP 2050 CES (50GW OSW)</option>
+                                    <option value="nuclear_bnpp">Revive Bataan Nuclear Power Plant (621 MW)</option>
+                                    <option value="nuclear_2032">Nuclear Target (1,200 MW by 2032)</option>
+                                    <option value="nuclear_2050">Nuclear Target (4,800 MW by 2050)</option>
+                                </select>
+                            </div>
+                            <div id="scenario-builder" class="border-t pt-4 mt-4 mb-4">
+                                <h3 class="font-semibold text-gray-700">Custom Scenario Builder</h3>
+                                <div class="space-y-4 mt-2">
+                                    <div>
+                                        <label for="plantType" class="input-label">Plant Type</label>
+                                        <select id="plantType" class="input-field">
+                                            <!-- Options will be populated by JS -->
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="specificModel" class="input-label">Specific Model/Generator</label>
+                                        <select id="specificModel" class="input-field">
+                                            <!-- Options will be populated by JS -->
+                                        </select>
+                                    </div>
+                                    <div id="unit-count-wrapper" class="hidden">
+                                        <label for="unitCount" class="input-label">Number of Units/Turbines</label>
+                                        <input type="number" id="unitCount" class="input-field" value="1" min="1">
+                                    </div>
+                                    <div>
+                                        <label for="capacity" class="input-label">Total New Capacity (MW)</label>
+                                        <input type="number" id="capacity" class="input-field" value="100">
+                                        <p id="capacity-helper" class="text-xs text-gray-500 mt-1 h-4"></p>
+                                    </div>
+                                    <button id="addPlantBtn" class="btn btn-primary w-full">Add to Custom Scenario</button>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <h3 class="font-semibold text-gray-700">Scenario Additions:</h3>
+                                <ul id="scenarioList" class="mt-2 text-sm space-y-2"></ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Economic Assumptions Accordion -->
+                    <div class="accordion-header border-t p-4 flex justify-between items-center" data-accordion="economic-assumptions">
+                        <h2 class="text-xl font-bold text-gray-800">Economic Assumptions</h2>
+                        <svg class="w-6 h-6 transform transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                    <div class="accordion-content" id="economic-assumptions-content">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="demandScenario" class="input-label">Electricity Demand Scenario</label>
+                                <select id="demandScenario" class="input-field">
+                                    <option value="4.5">Conservative (4.5%/yr)</option>
+                                    <option value="5.5" selected>Moderate Growth (5.5%/yr)</option>
+                                    <option value="6.5">Ambitious / PEP-CES (6.5%/yr)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="reCostReduction" class="input-label">Annual RE Cost Reduction (%)</label>
+                                <input type="number" id="reCostReduction" class="input-field" value="2.0" step="0.1">
+                            </div>
+                             <p class="text-xs text-gray-500">Applies a projected 10-year cost reduction to new Solar & Wind projects due to technology learning.</p>
+                        </div>
+                    </div>
+
+                    <!-- System Cost Assumptions Accordion -->
+                    <div class="accordion-header border-t p-4 flex justify-between items-center" data-accordion="system-costs">
+                        <h2 class="text-xl font-bold text-gray-800">System Cost Assumptions</h2>
+                         <svg class="w-6 h-6 transform transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                    <div class="accordion-content" id="system-costs-content">
+                        <div class="space-y-4">
+                             <div>
+                                <label for="gridUpgrade" class="input-label">Grid Upgrade Assumption</label>
+                                <select id="gridUpgrade" class="input-field">
+                                    <option value="current">Current Grid</option>
+                                    <option value="upgraded" selected>Upgraded Grid (TDP 2040)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="tdMarkup" class="input-label">T&D Markup (%)</label>
+                                <input type="number" id="tdMarkup" class="input-field" value="40" step="1">
+                            </div>
+                            <div>
+                                <label for="gridReinforcementCost" class="input-label">Base Grid Reinforcement (PhP/kWh)</label>
+                                <input type="number" id="gridReinforcementCost" class="input-field" value="0.10" step="0.01">
+                            </div>
+                            <div>
+                                <label for="vreCurtailmentRisk" class="input-label">VRE Curtailment Risk (%)</label>
+                                <input type="number" id="vreCurtailmentRisk" class="input-field" value="5" step="1">
+                            </div>
+                             <div>
+                                <label for="vreAncillaryCost" class="input-label">VRE Ancillary Cost Factor (PhP/kWh per % VRE)</label>
+                                <input type="number" id="vreAncillaryCost" class="input-field" value="0.0015" step="0.0001">
+                            </div>
+                            <div class="flex space-x-2 mt-2">
+                                <button id="pinScenarioBtn" class="btn btn-primary w-full">Pin Scenario for Comparison</button>
+                                <button id="resetBtn" class="btn btn-secondary w-full">Reset</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Dashboard & Results -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Key Metrics -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="card p-4 text-center">
+                        <h3 class="text-sm font-medium text-gray-500">Blended Cost / kWh</h3>
+                        <p id="totalSystemCost" class="text-2xl font-bold text-gray-800"></p>
+                    </div>
+                    <div class="card p-4 text-center">
+                        <h3 class="text-sm font-medium text-gray-500">Tariff Impact</h3>
+                        <p id="tariffImpact" class="text-2xl font-bold text-green-600"></p>
+                    </div>
+                    <div class="card p-4 text-center">
+                        <h3 class="text-sm font-medium text-gray-500">RE Share (% GWh)</h3>
+                        <p id="reShare" class="text-2xl font-bold text-gray-800"></p>
+                    </div>
+                    <div class="card p-4 text-center">
+                        <h3 class="text-sm font-medium text-gray-500">Self-Sufficiency</h3>
+                        <p id="selfSufficiency" class="text-2xl font-bold text-gray-800"></p>
+                    </div>
+                    <div class="card p-4 text-center">
+                        <h3 class="text-sm font-medium text-gray-500">Annual Fuel Import Cost</h3>
+                        <p id="importCost" class="text-2xl font-bold text-gray-800"></p>
+                    </div>
+                    <div class="card p-4 text-center">
+                        <h3 class="text-sm font-medium text-gray-500">System Inertia</h3>
+                        <p id="systemInertia" class="text-2xl font-bold text-gray-800"></p>
+                    </div>
+                     <div class="card p-4 text-center sm:col-span-2 lg:col-span-3">
+                        <h3 class="text-sm font-medium text-gray-500">Annual Emissions</h3>
+                        <p id="totalEmissions" class="text-2xl font-bold text-gray-800"></p>
+                    </div>
+                </div>
+
+                <!-- Tabs for Charts and Tables -->
+                <div class="card">
+                    <div class="border-b border-gray-200">
+                        <nav class="flex flex-wrap -mb-px overflow-x-auto" id="tab-nav">
+                            <button class="tab-button active" data-tab="charts">Visualizations</button>
+                            <button class="tab-button" data-tab="spug">SPUG Hybridization</button>
+                            <button class="tab-button" data-tab="dispatch">WESM Dispatch</button>
+                            <button class="tab-button" data-tab="stability">System Stability</button>
+                            <button class="tab-button" data-tab="compare">Compare Scenarios</button>
+                            <button class="tab-button" data-tab="roadmap">Nuclear Roadmap</button>
+                            <button class="tab-button" data-tab="finance">Project Finance</button>
+                            <button class="tab-button" data-tab="fit">Feed-in Tariff</button>
+                            <button class="tab-button" data-tab="gea">GEA Summary</button>
+                            <button class="tab-button" data-tab="offgrid-hybrid">Off-Grid & Hybridization</button>
+                            <button class="tab-button" data-tab="socio">Socio-Economic</button>
+                            <button class="tab-button" data-tab="sensitivity">Sensitivity & Reporting</button>
+                        </nav>
+                    </div>
+
+                    <div class="p-6">
+                        <!-- Main Visualizations Tab -->
+                        <div id="charts-content">
+                            <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                                <div>
+                                    <h3 class="font-semibold text-center mb-2">Generation Mix by Capacity (MW)</h3>
+                                    <canvas id="mixChart"></canvas>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold text-center mb-2">CO2 Emissions by Fuel Type (Tons)</h3>
+                                    <canvas id="emissionsChart"></canvas>
+                                </div>
+                                <div class="xl:col-span-2">
+                                    <h3 class="font-semibold text-center mb-2">Levelized Cost of Energy by Tech (PhP/kWh)</h3>
+                                    <canvas id="lcoeChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- SPUG Hybridization Tab -->
+                        <div id="spug-content" class="hidden"></div>
+                        <!-- WESM Dispatch Tab -->
+                        <div id="dispatch-content" class="hidden"></div>
+                        <!-- System Stability Tab -->
+                        <div id="stability-content" class="hidden"></div>
+                        <!-- Compare Scenarios Tab -->
+                        <div id="compare-content" class="hidden"></div>
+                        <!-- Nuclear Roadmap Tab -->
+                        <div id="roadmap-content" class="hidden"></div>
+                        <!-- Project Finance Tab -->
+                        <div id="finance-content" class="hidden"></div>
+                        <!-- Market Analysis Tab -->
+                        <div id="market-content" class="hidden"></div>
+                        <!-- Feed-in Tariff Tab -->
+                        <div id="fit-content" class="hidden"></div>
+                        <!-- GEA Summary Tab -->
+                        <div id="gea-content" class="hidden"></div>
+                        <!-- Off-Grid & Hybridization Tab -->
+                        <div id="offgrid-hybrid-content" class="hidden"></div>
+                        <!-- Socio-Economic Tab -->
+                        <div id="socio-content" class="hidden"></div>
+                        <!-- Sensitivity & Reporting Tab -->
+                        <div id="sensitivity-content" class="hidden"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div id="reportModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Scenario Report Summary</h2>
+                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <textarea id="reportText" class="w-full h-64 p-2 border rounded bg-gray-50 font-mono text-sm" readonly></textarea>
+            <div class="mt-4 flex justify-end space-x-2">
+                <button id="copyReportBtn" class="btn btn-primary">Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- DATA & CONFIGURATION ---
+        const techData = {
+            'Coal':         { color: '#4b5563', capex: 120000, opex: 2500, cf: 0.85, fuel_kwh: 2.5, isVRE: false, co2_factor: 950, is_imported: true, is_synchronous: true, is_renewable: false },
+            'Natural Gas':  { color: '#f59e0b', capex: 50000,  opex: 1500, cf: 0.70, fuel_kwh: 4.0, isVRE: false, co2_factor: 450, is_imported: true, is_synchronous: true, is_renewable: false },
+            'Hydro':        { color: '#3b82f6', capex: 276675, opex: 2000, cf: 0.45, fuel_kwh: 0, isVRE: false, co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: true },
+            'Geothermal':   { color: '#ef4444', capex: 172700, opex: 2800, cf: 0.90, fuel_kwh: 0, isVRE: false, co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: true },
+            'Solar':        { color: '#facc15', capex: 62000,  opex: 1000, cf: 0.20, fuel_kwh: 0, isVRE: true, co2_factor: 0, is_imported: false, is_synchronous: false, is_renewable: true },
+            'Wind':         { color: '#22c55e', capex: 180000, opex: 2000, cf: 0.35, fuel_kwh: 0, isVRE: true, co2_factor: 0, is_imported: false, is_synchronous: false, is_renewable: true },
+            'Biomass':      { color: '#84cc16', capex: 170000, opex: 4000, cf: 0.80, fuel_kwh: 2.0, isVRE: false, co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: true },
+            'Oil-based':    { color: '#7e22ce', capex: 30000,  opex: 1000, cf: 0.30, fuel_kwh: 8.0, isVRE: false, co2_factor: 750, is_imported: true, is_synchronous: true, is_renewable: false },
+            'OffshoreWind': { color: '#06b6d4', capex: 250000, opex: 3500, cf: 0.50, fuel_kwh: 0, isVRE: true, name: 'Offshore Wind', co2_factor: 0, is_imported: false, is_synchronous: false, is_renewable: true },
+            'Nuclear':      { color: '#a855f7', capex: 350000, opex: 4000, cf: 0.90, fuel_kwh: 0, isVRE: false, name: 'Nuclear', co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: false },
+            'Nuclear_SMR':  { color: '#a855f7', capex: 400000, opex: 4500, cf: 0.90, fuel_kwh: 0, isVRE: false, name: 'Nuclear (SMR)', co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: false },
+            'Nuclear_BNPP': { color: '#a855f7', capex: 220000, opex: 5000, cf: 0.90, fuel_kwh: 0, isVRE: false, name: 'Nuclear (BNPP)', co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: false },
+            'SolarBESS':    { color: '#eab308', capex: 95000, opex: 1500, cf: 0.20, fuel_kwh: 0, isVRE: true, name: 'Solar + BESS', co2_factor: 0, is_imported: false, is_synchronous: false, is_renewable: true }
+        };
+
+        const specificModels = {
+            'Solar': [ { id: 'generic', name: 'Generic Utility-Scale', capacity: 100 } ],
+            'Wind': [ { id: 'generic', name: 'Generic Onshore Wind', capacity: 100 }, { id: 'vestas_v112', name: 'Vestas V112', capacity: 3.45 }, { id: 'vestas_v136', name: 'Vestas V136', capacity: 4.2 }, { id: 'vestas_v150', name: 'Vestas V150', capacity: 4.2 }, { id: 'vestas_v162', name: 'Vestas V162', capacity: 6.2 }, { id: 'sgre_4_5_125', name: 'SGRE SG 4.5-125', capacity: 4.5 }, { id: 'sgre_5_8_145', name: 'SGRE SG 5.8-145', capacity: 5.8 }, { id: 'sgre_6_6_155', name: 'SGRE SG 6.6-155', capacity: 6.6 }, { id: 'sgre_8_0_170', name: 'SGRE SG 8.0-170', capacity: 8.0 }, { id: 'gamesa_g90', name: 'Gamesa G90', capacity: 2.0 }, { id: 'ge_4_8_129', name: 'GE 4.8-129', capacity: 4.8 }, { id: 'ge_cypress', name: 'GE Cypress', capacity: 5.5 }, { id: 'goldwind_gw82', name: 'Goldwind GW82', capacity: 1.5 }, { id: 'goldwind_gw136', name: 'Goldwind GW136', capacity: 3.4 }, { id: 'goldwind_gw165', name: 'Goldwind GW165', capacity: 6.0 }, { id: 'goldwind_gw175', name: 'Goldwind GW175', capacity: 8.0 }, { id: 'nordex_n131', name: 'Nordex N131', capacity: 3.9 }, { id: 'nordex_n149', name: 'Nordex N149', capacity: 5.5 }, { id: 'nordex_n163', name: 'Nordex N163', capacity: 6.5 }, { id: 'envision_en156', name: 'Envision EN156', capacity: 4.5 }, { id: 'envision_en171', name: 'Envision EN171', capacity: 6.5 }, { id: 'mingyang_myse_7_25_171', name: 'Mingyang MySE 7.25-171', capacity: 7.25 }, { id: 'suzlon_s120', name: 'Suzlon S120', capacity: 2.1 }, { id: 'windey_wd160', name: 'Windey WD160', capacity: 5.0 }, { id: 'sany_se_17260', name: 'Sany SE-17260', capacity: 6.0 }, { id: 'united_power_up5500', name: 'United Power UP5500-155', capacity: 5.5 } ],
+            'OffshoreWind': [ { id: 'generic', name: 'Generic Offshore Wind', capacity: 200 }, { id: 'vestas_v236', name: 'Vestas V236', capacity: 15.0 }, { id: 'sgre_14_222', name: 'SGRE SG 14-222', capacity: 14.0 }, { id: 'sgre_14_236', name: 'SGRE SG 14-236', capacity: 14.0 }, { id: 'ge_haliade_x', name: 'GE Haliade-X', capacity: 14.7 }, { id: 'mingyang_myse_14_236', name: 'Mingyang MySE 14-236', capacity: 14.0 }, { id: 'mingyang_myse_16_260', name: 'Mingyang MySE 16-260', capacity: 16.0 }, { id: 'shanghai_electric_sew11', name: 'Shanghai Electric SEW11.0-208', capacity: 11.0 }, { id: 'cssc_haizhuang_h210', name: 'CSSC Haizhuang H210', capacity: 10.0 } ],
+            'Geothermal': [ { id: 'generic', name: 'Generic Geothermal', capacity: 50 }, { id: 'ormat_binary', name: 'Ormat Binary Unit', capacity: 20 }, { id: 'fuji_flash', name: 'Fuji Electric Flash Steam', capacity: 50 }, { id: 'mitsubishi_flash', name: 'Mitsubishi Flash Steam', capacity: 55 }, { id: 'toshiba_steam', name: 'Toshiba Steam Turbine', capacity: 60 }, { id: 'ansaldo_steam', name: 'Ansaldo Steam Turbine', capacity: 50 } ],
+            'Biomass': [ { id: 'generic', name: 'Generic Biomass', capacity: 20 }, { id: 'cfb_boiler', name: 'CFB Boiler Turbine', capacity: 25 }, { id: 'triveni_turbine', name: 'Triveni Steam Turbine', capacity: 30 }, { id: 'elliott_turbine', name: 'Elliott Steam Turbine', capacity: 40 }, { id: 'turboden_orc', name: 'Turboden ORC Unit', capacity: 5 } ],
+            'Hydro': [ { id: 'generic', name: 'Generic Hydro', capacity: 50 }, { id: 'voith_francis_large', name: 'Voith Francis (Large)', capacity: 200 }, { id: 'voith_kaplan_mgr', name: 'Voith Kaplan (Fish-Friendly)', capacity: 50 }, { id: 'voith_pelton_large', name: 'Voith Pelton (High Head)', capacity: 150 }, { id: 'andritz_francis_compact', name: 'ANDRITZ Francis (Compact)', capacity: 75 }, { id: 'andritz_kaplan_bulb', name: 'ANDRITZ Kaplan (Bulb)', capacity: 40 }, { id: 'andritz_pelton', name: 'ANDRITZ Pelton', capacity: 100 }, { id: 'ge_francis', name: 'GE Vernova Francis', capacity: 150 }, { id: 'ge_kaplan_bulb', name: 'GE Vernova Kaplan (Bulb)', capacity: 35 }, { id: 'ge_pelton', name: 'GE Vernova Pelton', capacity: 120 }, { id: 'gilkes_pelton', name: 'Gilbert Gilkes & Gordon Pelton', capacity: 15 }, { id: 'gilkes_turgo', name: 'Gilbert Gilkes & Gordon Turgo', capacity: 8 }, { id: 'ossberger_crossflow', name: 'Ossberger Cross-flow', capacity: 2 }, { id: 'canyon_francis', name: 'Canyon Hydro Francis', capacity: 20 } ],
+            'SolarBESS': [ { id: 'generic', name: 'Generic Solar + BESS', capacity: 50 } ],
+            'Nuclear': [
+                { id: 'smr_generic', name: 'Small Modular Reactor (SMR) - Generic', capacity: 150, type: 'Nuclear_SMR' },
+                { id: 'smr_bwrox300', name: 'SMR - BWRX-300', capacity: 300, type: 'Nuclear_SMR' },
+                { id: 'smr_rr', name: 'SMR - Rolls-Royce', capacity: 470, type: 'Nuclear_SMR' },
+                { id: 'large_generic', name: 'Large Conventional - Generic', capacity: 1200, type: 'Nuclear' },
+                { id: 'large_ap1000', name: 'Large - Westinghouse AP1000', capacity: 1117, type: 'Nuclear' },
+                { id: 'large_apr1400', name: 'Large - KHNP APR-1400', capacity: 1400, type: 'Nuclear' },
+            ],
+        };
+
+        const baselineGrids = {
+            as_of_april_2025: {
+                national: [ { tech: 'Coal', capacity: 13006 }, { tech: 'Oil-based', capacity: 3404 }, { tech: 'Natural Gas', capacity: 4612 }, { tech: 'Biomass', capacity: 779 }, { tech: 'Geothermal', capacity: 1987 }, { tech: 'Solar', capacity: 3126 }, { tech: 'Hydro', capacity: 3844 }, { tech: 'Wind', capacity: 427 } ],
+                luzon: [ { tech: 'Coal', capacity: 9392 }, { tech: 'Oil-based', capacity: 2054 }, { tech: 'Natural Gas', capacity: 4611 }, { tech: 'Biomass', capacity: 215 }, { tech: 'Geothermal', capacity: 900 }, { tech: 'Solar', capacity: 2503 }, { tech: 'Hydro', capacity: 2565 }, { tech: 'Wind', capacity: 337 } ],
+                visayas: [ { tech: 'Coal', capacity: 1346 }, { tech: 'Oil-based', capacity: 517 }, { tech: 'Natural Gas', capacity: 1 }, { tech: 'Biomass', capacity: 442 }, { tech: 'Geothermal', capacity: 975 }, { tech: 'Solar', capacity: 535 }, { tech: 'Hydro', capacity: 55 }, { tech: 'Wind', capacity: 90 } ],
+                mindanao: [ { tech: 'Coal', capacity: 2268 }, { tech: 'Oil-based', capacity: 833 }, { tech: 'Natural Gas', capacity: 0 }, { tech: 'Biomass', capacity: 122 }, { tech: 'Geothermal', capacity: 112 }, { tech: 'Solar', capacity: 88 }, { tech: 'Hydro', capacity: 1224 }, { tech: 'Wind', capacity: 0 } ]
+            },
+            projected_2024: { national: [ { tech: 'Coal', capacity: 12406 }, { tech: 'Natural Gas', capacity: 3453 }, { tech: 'Hydro', capacity: 3830 }, { tech: 'Geothermal', capacity: 1957 }, { tech: 'Solar', capacity: 1663 },  { tech: 'Wind', capacity: 427 }, { tech: 'Biomass', capacity: 484 }, { tech: 'Oil-based', capacity: 2448 }, ], luzon: [ { tech: 'Coal', capacity: 10400 }, { tech: 'Natural Gas', capacity: 3453 }, { tech: 'Hydro', capacity: 2600 }, { tech: 'Geothermal', capacity: 1250 }, { tech: 'Solar', capacity: 1200 },  { tech: 'Wind', capacity: 400 }, { tech: 'Biomass', capacity: 300 }, { tech: 'Oil-based', capacity: 1800 }, ], visayas: [ { tech: 'Coal', capacity: 1000 }, { tech: 'Hydro', capacity: 550 }, { tech: 'Geothermal', capacity: 600 }, { tech: 'Solar', capacity: 400 }, { tech: 'Wind', capacity: 27 }, { tech: 'Biomass', capacity: 100 }, { tech: 'Oil-based', capacity: 428 }, ], mindanao: [ { tech: 'Coal', capacity: 1006 }, { tech: 'Hydro', capacity: 680 }, { tech: 'Geothermal', capacity: 107 }, { tech: 'Solar', capacity: 63 }, { tech: 'Biomass', capacity: 84 }, { tech: 'Oil-based', capacity: 220 }, ] },
+            baseline_2022: { national: [ { tech: 'Coal', capacity: 12000 }, { tech: 'Natural Gas', capacity: 3500 }, { tech: 'Hydro', capacity: 3750 }, { tech: 'Geothermal', capacity: 1930 }, { tech: 'Solar', capacity: 950 },  { tech: 'Wind', capacity: 420 }, { tech: 'Biomass', capacity: 230 }, { tech: 'Oil-based', capacity: 2500 }, ], luzon: [ { tech: 'Coal', capacity: 9500 }, { tech: 'Natural Gas', capacity: 3500 }, { tech: 'Hydro', capacity: 2500 }, { tech: 'Geothermal', capacity: 1200 }, { tech: 'Solar', capacity: 700 },  { tech: 'Wind', capacity: 380 }, { tech: 'Biomass', capacity: 150 }, { tech: 'Oil-based', capacity: 1800 }, ], visayas: [ { tech: 'Coal', capacity: 1500 }, { tech: 'Hydro', capacity: 500 }, { tech: 'Geothermal', capacity: 600 }, { tech: 'Solar', capacity: 200 }, { tech: 'Wind', capacity: 40 }, { tech: 'Biomass', capacity: 50 }, { tech: 'Oil-based', capacity: 400 }, ], mindanao: [ { tech: 'Coal', capacity: 1000 }, { tech: 'Hydro', capacity: 750 }, { tech: 'Geothermal', capacity: 130 }, { tech: 'Solar', capacity: 50 }, { tech: 'Biomass', capacity: 30 }, { tech: 'Oil-based', capacity: 300 }, ] }
+        };
+        
+        let currentBaseline = baselineGrids.as_of_april_2025.national;
+
+        const preDefinedScenarios = {
+            'custom': [],
+            'committed_projects': [ { tech: 'Coal', capacity: 2305 }, { tech: 'Natural Gas', capacity: 6070 }, { tech: 'Oil-based', capacity: 87 }, { tech: 'Geothermal', capacity: 122 }, { tech: 'Hydro', capacity: 271 }, { tech: 'Solar', capacity: 3391 }, { tech: 'Wind', capacity: 273 }, { tech: 'Biomass', capacity: 81 }, ],
+            'gea1_awarded': [ { tech: 'Solar', capacity: 1490 }, { tech: 'Wind', capacity: 374 }, { tech: 'Hydro', capacity: 99 }, { tech: 'Biomass', capacity: 3 } ],
+            'gea2_awarded': [ { tech: 'Solar', capacity: 1969 }, { tech: 'Wind', capacity: 1462 }, { tech: 'Biomass', capacity: 230 } ],
+            'gea3_awarded': [ { tech: 'Hydro', capacity: 6400 }, { tech: 'Geothermal', capacity: 81 } ],
+            'gea4_target': [ { tech: 'Solar', capacity: 7000 }, { tech: 'Wind', capacity: 2400 }, { tech: 'SolarBESS', capacity: 1100 } ],
+            'gea5_target': [ { tech: 'OffshoreWind', capacity: 3300 } ],
+            'gea1_to_3_awarded': [ { tech: 'Solar', capacity: 3459 }, { tech: 'Wind', capacity: 1836 }, { tech: 'Hydro', capacity: 6499 }, { tech: 'Biomass', capacity: 233 }, { tech: 'Geothermal', capacity: 81 } ],
+            'gea4_to_5_target': [ { tech: 'Solar', capacity: 7000 }, { tech: 'Wind', capacity: 2400 }, { tech: 'SolarBESS', capacity: 1100 }, { tech: 'OffshoreWind', capacity: 3300 } ],
+            'gea1_to_5_total': [ { tech: 'Solar', capacity: 10459 }, { tech: 'Wind', capacity: 4236 }, { tech: 'Hydro', capacity: 6499 }, { tech: 'Biomass', capacity: 233 }, { tech: 'Geothermal', capacity: 81 }, { tech: 'SolarBESS', capacity: 1100 }, { tech: 'OffshoreWind', capacity: 3300 } ],
+            'gea1_to_5_50_percent': [ { tech: 'Solar', capacity: 5229.5 }, { tech: 'Wind', capacity: 2118 }, { tech: 'Hydro', capacity: 3249.5 }, { tech: 'Biomass', capacity: 116.5 }, { tech: 'Geothermal', capacity: 40.5 }, { tech: 'SolarBESS', capacity: 550 }, { tech: 'OffshoreWind', capacity: 1650 } ],
+            'pep_ref': [ { tech: 'Solar', capacity: 54948 }, { tech: 'Wind', capacity: 31842 }, { tech: 'Hydro', capacity: 10266 }, { tech: 'Geothermal', capacity: 1355 }, { tech: 'Natural Gas', capacity: 21881 }, { tech: 'Coal', capacity: 2305 } ],
+            'pep_ces1': [ { tech: 'Solar', capacity: 53164 }, { tech: 'Wind', capacity: 13842 }, { tech: 'OffshoreWind', capacity: 19500 }, { tech: 'Hydro', capacity: 6800 }, { tech: 'Geothermal', capacity: 1005 }, { tech: 'Nuclear', capacity: 4800 }, { tech: 'Natural Gas', capacity: 15989 } ],
+            'pep_ces2': [ { tech: 'Solar', capacity: 34164 }, { tech: 'Wind', capacity: 15408 }, { tech: 'OffshoreWind', capacity: 50100 }, { tech: 'Hydro', capacity: 6181 }, { tech: 'Geothermal', capacity: 1005 }, { tech: 'Nuclear', capacity: 4800 }, { tech: 'Natural Gas', capacity: 18857 } ],
+            'nuclear_bnpp': [ { tech: 'Nuclear_BNPP', capacity: 621 } ],
+            'nuclear_2032': [ { tech: 'Nuclear', capacity: 1200 } ],
+            'nuclear_2050': [ { tech: 'Nuclear', capacity: 4800 } ],
+        };
+        
+        const fitData = [
+            { tech: 'SOLAR', fit: 'FIT I', rate: 9.68, target: 50, subscribed: 67.60, plants: 6 },
+            { tech: 'SOLAR', fit: 'FIT II', rate: 8.69, target: 450, subscribed: 476.03, plants: 18 },
+            { tech: 'WIND', fit: 'FIT I', rate: 8.53, target: 200, subscribed: 234.54, plants: 3 },
+            { tech: 'WIND', fit: 'FIT II', rate: 7.40, target: 200, subscribed: 141.00, plants: 3 },
+            { tech: 'BIOMASS', fit: 'FIT I', rate: 6.63, target: null, subscribed: 117.35, plants: 12 },
+            { tech: 'BIOMASS', fit: 'Degressed', rate: 6.5969, target: 250, subscribed: 18.06, plants: 5 },
+            { tech: 'BIOMASS', fit: 'FIT II', rate: 6.19, target: null, subscribed: 104.03, plants: 10 },
+            { tech: 'ROR HYDRO', fit: 'FIT I', rate: 5.90, target: null, subscribed: 35.96, plants: 5 },
+            { tech: 'ROR HYDRO', fit: 'Degressed', rate: 5.8705, target: null, subscribed: 8.50, plants: 1 },
+            { tech: 'ROR HYDRO', fit: 'FIT II', rate: 5.8705, target: 350, subscribed: 102.90, plants: 8 },
+        ];
+        
+        const fitAllData = [
+            { year: '2015', rate: 0.0406, notes: 'Initial FIT-All rate implementation.' },
+            { year: '2016', rate: 0.1830, notes: 'Substantial increase to support growing RE projects.' },
+            { year: '2017', rate: 0.2563, notes: 'Upward trend continued to cover program costs.' },
+            { year: '2018', rate: 0.2563, notes: 'Rate adjusted mid-year back to 2017 level.' },
+            { year: '2019', rate: 0.0495, notes: 'Significant reduction implemented.' },
+            { year: '2020', rate: 0.0983, notes: 'Rate more than doubled to ensure fund sustainability.' },
+            { year: '2021', rate: 0.0364, notes: 'Notable decrease approved.' },
+            { year: '2022-2023', rate: null, notes: 'Collection suspended by ERC to alleviate consumer burden.' },
+            { year: 'Feb 2024', rate: 0.0364, notes: 'Collection resumed at the 2021 rate.' },
+            { year: 'Mid-2024', rate: 0.0838, notes: 'Rate adjusted upwards due to low WESM prices.' },
+            { year: 'Mar 2025', rate: 0.1189, notes: 'Further increase to ensure continued viability of the FIT program.' }
+        ];
+
+        const spugClusters = {
+            batanes: { name: "Batanes", sagr_cap: 7.39, budget: 900, diesel_kw: 2800, annual_demand_gwh: 2.88 },
+            bicol: { name: "Bicol SPUG", sagr_cap: 6.55, budget: 820, diesel_kw: 3500, annual_demand_gwh: 4.10 },
+            palawan: { name: "El Nido, Palawan", sagr_cap: 7.39, budget: 960, diesel_kw: 4200, annual_demand_gwh: 5.50 },
+            tawi_tawi: { name: "Tawi-Tawi", sagr_cap: 6.71, budget: 740, diesel_kw: 3000, annual_demand_gwh: 3.95 }
+        };
+
+        let scenarioAdditions = [];
+        let pinnedScenarios = [];
+        let charts = {};
+
+        // --- DOM ELEMENTS ---
+        const dom = {
+            addPlantBtn: document.getElementById('addPlantBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            pinScenarioBtn: document.getElementById('pinScenarioBtn'),
+            scenarioList: document.getElementById('scenarioList'),
+            scenarioSelect: document.getElementById('scenarioSelect'),
+            gridSelect: document.getElementById('gridSelect'),
+            baselineSelect: document.getElementById('baselineSelect'),
+            tabNav: document.getElementById('tab-nav'),
+            tabContents: {
+                charts: document.getElementById('charts-content'),
+                spug: document.getElementById('spug-content'),
+                dispatch: document.getElementById('dispatch-content'),
+                stability: document.getElementById('stability-content'),
+                compare: document.getElementById('compare-content'),
+                roadmap: document.getElementById('roadmap-content'),
+                finance: document.getElementById('finance-content'),
+                market: document.getElementById('market-content'),
+                fit: document.getElementById('fit-content'),
+                gea: document.getElementById('gea-content'),
+                'offgrid-hybrid': document.getElementById('offgrid-hybrid-content'),
+                socio: document.getElementById('socio-content'),
+                sensitivity: document.getElementById('sensitivity-content'),
+            },
+            inputs: {
+                demandScenario: document.getElementById('demandScenario'),
+                tdMarkup: document.getElementById('tdMarkup'),
+                gridReinforcementCost: document.getElementById('gridReinforcementCost'),
+                reCostReduction: document.getElementById('reCostReduction'),
+                vreCurtailmentRisk: document.getElementById('vreCurtailmentRisk'),
+                vreAncillaryCost: document.getElementById('vreAncillaryCost'),
+                gridUpgrade: document.getElementById('gridUpgrade'),
+                plantType: document.getElementById('plantType'),
+                specificModel: document.getElementById('specificModel'),
+                unitCount: document.getElementById('unitCount'),
+                unitCountWrapper: document.getElementById('unit-count-wrapper'),
+                capacity: document.getElementById('capacity'),
+                capacityHelper: document.getElementById('capacity-helper'),
+            },
+            reportModal: document.getElementById('reportModal'),
+            closeModalBtn: document.getElementById('closeModalBtn'),
+            copyReportBtn: document.getElementById('copyReportBtn'),
+            reportText: document.getElementById('reportText'),
+        };
+
+        // --- UTILITY FUNCTIONS ---
+        const formatNumber = (num, decimals = 0) => num === null ? 'N/A' : new Intl.NumberFormat('en-US', { maximumFractionDigits: decimals, minimumFractionDigits: decimals }).format(num);
+        const formatCurrency = (num, notation = 'standard') => `₱${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2, notation: notation, minimumFractionDigits: 2 }).format(num)}`;
+        const formatTons = (num) => `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0, notation: 'compact' }).format(num)} tCO₂`;
+
+        // --- CORE CALCULATION LOGIC ---
+        function calculateSystemMetrics(system, isBaseline = false, sensitivity = {}, contingency = {}) {
+            const lifetime = 25;
+            const discountRate = 0.093; // Updated WACC based on Aurora report for de-risked projects
+            const crf = discountRate * Math.pow(1 + discountRate, lifetime) / (Math.pow(1 + discountRate, lifetime) - 1);
+            
+            const demandGrowth = isBaseline ? 0 : (parseFloat(dom.inputs.demandScenario.value) || 0) / 100;
+            const tdMarkup = (parseFloat(dom.inputs.tdMarkup.value) || 0) / 100;
+            const baseAncillaryCost = 0.30; // Fixed component
+            const vreAncillaryCostFactor = parseFloat(dom.inputs.vreAncillaryCost.value) || 0;
+            let gridReinforcementCost = contingency.gridReinforcementCost || parseFloat(dom.inputs.gridReinforcementCost.value) || 0;
+            const vreCurtailmentRisk = (contingency.vreCurtailmentRisk || parseFloat(dom.inputs.vreCurtailmentRisk.value) || 0) / 100;
+            
+            let totalCapacity = 0, totalAnnualGeneration = 0, totalAnnualVREGeneration = 0, totalAnnualGenCost = 0, totalEmissions = 0, totalImportedFuelCost = 0, totalIndigenousGeneration = 0, totalSynchronousCapacity = 0, totalAnnualREGeneration = 0;
+            
+            const detailedResults = system.map(plant => {
+                const isNewlyAdded = !currentBaseline.some(basePlant => basePlant.tech === plant.tech && basePlant.capacity === plant.capacity);
+                const tech = techData[plant.tech];
+                
+                let capex = tech.capex * (1 + (sensitivity.capex || 0) / 100);
+                if(isNewlyAdded && (plant.tech.includes('Solar') || plant.tech.includes('Wind'))) {
+                    const reductionRate = (parseFloat(dom.inputs.reCostReduction.value) || 0) / 100;
+                    capex *= Math.pow(1 - reductionRate, 10);
+                }
+
+                let fuelCostKwh = tech.fuel_kwh * (1 + (sensitivity.fuel || 0) / 100);
+                let cf = tech.isVRE ? tech.cf * (1 + (sensitivity.cf || 0) / 100) : tech.cf;
+
+                let annualGenerationGWh = plant.capacity * cf * 8760 / 1000;
+                if (tech.isVRE) {
+                    annualGenerationGWh *= (1 - vreCurtailmentRisk);
+                }
+                const plantEmissions = annualGenerationGWh * (tech.co2_factor || 0);
+
+                const annualGenerationKWh = annualGenerationGWh * 1e6;
+                const annualizedCapex = plant.capacity * capex * crf;
+                const annualOpex = plant.capacity * tech.opex;
+                const annualFuelCost = annualGenerationKWh * fuelCostKwh;
+                
+                const totalCostForPlant = annualizedCapex + annualOpex + annualFuelCost;
+                const lcoe = annualGenerationKWh > 0 ? totalCostForPlant / annualGenerationKWh : 0;
+                
+                totalCapacity += plant.capacity;
+                totalAnnualGeneration += annualGenerationGWh;
+                totalAnnualGenCost += totalCostForPlant;
+                totalEmissions += plantEmissions;
+                if (tech.isVRE) totalAnnualVREGeneration += annualGenerationGWh;
+                if (tech.is_imported) totalImportedFuelCost += annualFuelCost;
+                else totalIndigenousGeneration += annualGenerationGWh;
+                if (tech.is_synchronous) totalSynchronousCapacity += plant.capacity;
+                if (tech.is_renewable) totalAnnualREGeneration += annualGenerationGWh;
+
+                return { techName: tech.name || plant.tech, capacity: plant.capacity, lcoe, annualGenerationGWh, color: tech.color, emissions: plantEmissions, marginalCost: fuelCostKwh + (tech.opex / (8760 * 1000 * (tech.cf || 1))) };
+            });
+
+            if (dom.inputs.gridUpgrade.value === 'current' && scenarioAdditions.length > 0) {
+                const lastAdded = scenarioAdditions[scenarioAdditions.length - 1];
+                const gridCapacity = currentBaseline.reduce((sum, p) => sum + p.capacity, 0);
+                const largePlantThreshold = gridCapacity * 0.1; // e.g., >10% of grid capacity is a large addition
+                if (lastAdded.capacity > largePlantThreshold) {
+                    gridReinforcementCost += 0.15; // Add a penalty for large additions to a weak grid
+                }
+            }
+            
+            const forecastedAnnualGeneration = totalAnnualGeneration * (1 + demandGrowth);
+            const blendedGenerationCost = totalAnnualGeneration > 0 ? totalAnnualGenCost / (totalAnnualGeneration * 1e9) : 0;
+            const tdCost = blendedGenerationCost * tdMarkup;
+            const vreShare = totalAnnualGeneration > 0 ? totalAnnualVREGeneration / totalAnnualGeneration : 0;
+            const ancillaryCost = baseAncillaryCost + (vreShare * 100 * vreAncillaryCostFactor);
+            
+            const totalSystemCostPerKwh = blendedGenerationCost + tdCost + ancillaryCost + gridReinforcementCost;
+            const totalAnnualSystemCostValue = totalSystemCostPerKwh * forecastedAnnualGeneration * 1e9;
+            const selfSufficiency = totalAnnualGeneration > 0 ? (totalIndigenousGeneration / totalAnnualGeneration) * 100 : 0;
+            const systemInertia = totalCapacity > 0 ? (totalSynchronousCapacity / totalCapacity) * 100 : 0;
+            const reShare = totalAnnualGeneration > 0 ? (totalAnnualREGeneration / totalAnnualGeneration) * 100 : 0;
+
+            return { totalSystemCostPerKwh, totalAnnualSystemCost: totalAnnualSystemCostValue, details: detailedResults, totalCapacity, blendedGenerationCost, tdCost, ancillaryCost, gridReinforcementCost, totalAnnualGeneration: forecastedAnnualGeneration, totalEmissions, totalImportedFuelCost, selfSufficiency, systemInertia, reShare };
+        }
+
+        // --- UI UPDATE FUNCTIONS ---
+        function updateUI() {
+            const baselineData = baselineGrids[dom.baselineSelect.value];
+            currentBaseline = baselineData[dom.gridSelect.value];
+
+            const baselineMetrics = calculateSystemMetrics(currentBaseline, true);
+            const scenarioSystem = [...currentBaseline, ...scenarioAdditions];
+            const scenarioMetrics = calculateSystemMetrics(scenarioSystem);
+            
+            document.getElementById('totalSystemCost').textContent = `${formatCurrency(scenarioMetrics.totalSystemCostPerKwh)}/kWh`;
+            document.getElementById('totalEmissions').textContent = formatTons(scenarioMetrics.totalEmissions);
+            document.getElementById('selfSufficiency').textContent = `${scenarioMetrics.selfSufficiency.toFixed(1)}%`;
+            document.getElementById('importCost').textContent = `${formatCurrency(scenarioMetrics.totalImportedFuelCost, 'compact')}`;
+            document.getElementById('systemInertia').textContent = `${scenarioMetrics.systemInertia.toFixed(1)}%`;
+            document.getElementById('reShare').textContent = `${scenarioMetrics.reShare.toFixed(1)}%`;
+            
+            const tariffImpactValue = ((scenarioMetrics.totalSystemCostPerKwh / baselineMetrics.totalSystemCostPerKwh) - 1) * 100;
+            const tariffImpactEl = document.getElementById('tariffImpact');
+            tariffImpactEl.textContent = `${tariffImpactValue.toFixed(2)}%`;
+            tariffImpactEl.className = 'text-2xl font-bold ';
+            if (tariffImpactValue > 0.1) tariffImpactEl.classList.add('text-red-500');
+            else if (tariffImpactValue < -0.1) tariffImpactEl.classList.add('text-green-600');
+            else tariffImpactEl.classList.add('text-gray-800');
+
+            populateAllTabs(baselineMetrics, scenarioMetrics);
+            updateCharts(baselineMetrics, scenarioMetrics);
+            runAllSensitivityAnalyses();
+            updateProjectFinanceTab();
+        }
+
+        function populateAllTabs(baselineMetrics, scenarioMetrics) {
+             // SPUG Hybridization Tab
+            populateSpugTab();
+
+            // Off-Grid & Hybridization Tab
+            if(!dom.tabContents['offgrid-hybrid'].innerHTML) {
+                dom.tabContents['offgrid-hybrid'].innerHTML = `
+                    <div class="prose prose-sm max-w-none mb-8">
+                        <h4>NAPOCOR SPUG Hybridization Program</h4>
+                        <p>The National Power Corporation (NAPOCOR), through its Small Power Utilities Group (SPUG), is responsible for missionary electrification in remote islands and isolated communities not connected to the main grid. Historically, these areas have relied on expensive, imported diesel fuel for power generation.</p>
+                        <p>In line with the national goal of energy security and sustainability, NAPOCOR is actively pursuing the hybridization of its SPUG power plants. This initiative involves integrating renewable energy sources, primarily solar PV, with battery energy storage systems (BESS) into the existing diesel-powered grids. The key objectives are:</p>
+                        <ul>
+                            <li><strong>Reduce reliance on imported fossil fuels</strong> and mitigate exposure to volatile global oil prices.</li>
+                            <li><strong>Lower the cost of electricity generation</strong> and reduce the required subsidy (Universal Charge for Missionary Electrification - UCME).</li>
+                            <li><strong>Decrease carbon emissions</strong> and promote cleaner energy in ecologically sensitive island environments.</li>
+                        </ul>
+                    </div>
+                    <h3 class="font-semibold mb-2">Off-Grid Community Simulator</h3>
+                    <p class="text-sm text-gray-600 mb-4">Model a small, isolated grid to assess optimal energy solutions for rural communities.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-4">
+                            <div><label for="offgridHH" class="input-label">Number of Households</label><input type="number" id="offgridHH" class="input-field" value="200"></div>
+                            <div><label for="offgridSolar" class="input-label">Solar Capacity (kW)</label><input type="number" id="offgridSolar" class="input-field" value="50"></div>
+                            <div><label for="offgridBattery" class="input-label">Battery Storage (kWh)</label><input type="number" id="offgridBattery" class="input-field" value="100"></div>
+                            <div><label for="offgridDiesel" class="input-label">Diesel Generator (kW)</label><input type="number" id="offgridDiesel" class="input-field" value="25"></div>
+                        </div>
+                        <div class="card p-4 bg-gray-50 text-center flex flex-col justify-center">
+                            <div><h4 class="font-medium text-gray-500">Estimated Local Tariff</h4><p id="offgridTariff" class="text-4xl font-bold text-blue-600">₱0.00/kWh</p></div>
+                            <div class="mt-4"><h4 class="font-medium text-gray-500">Daily Cost per Household</h4><p id="offgridDailyCost" class="text-2xl font-bold text-gray-800">₱0.00</p></div>
+                        </div>
+                    </div>`;
+                ['offgridHH', 'offgridSolar', 'offgridBattery', 'offgridDiesel'].forEach(id => document.getElementById(id).addEventListener('input', calculateOffGridTariff));
+            }
+            calculateOffGridTariff();
+            
+            // Socio-Economic Content
+            const socioConsumerProfiles = [ { name: 'Low-Income Lifeline User', consumption_kwh: 50, icon: '🏠' }, { name: 'Average Urban Household', consumption_kwh: 250, icon: '🏙️' }, { name: 'Small Commercial Business', consumption_kwh: 1500, icon: '🏪' } ];
+            dom.tabContents.socio.innerHTML = `<h3 class="font-semibold mb-2">Estimated Impact on Monthly Electricity Bills</h3><p class="text-sm text-gray-600 mb-4">This module rigorously represents how average costs translate to final prices by applying the full system cost per kWh to typical consumption profiles for vulnerable groups.</p><div class="space-y-4">${socioConsumerProfiles.map(profile => { const baselineBill = baselineMetrics.totalSystemCostPerKwh * profile.consumption_kwh; const scenarioBill = scenarioMetrics.totalSystemCostPerKwh * profile.consumption_kwh; const change = scenarioBill - baselineBill; return `<div class="card p-4 flex items-center justify-between"><div><p class="font-bold text-gray-800">${profile.icon} ${profile.name}</p><p class="text-sm text-gray-600">~${formatNumber(profile.consumption_kwh)} kWh/month</p></div><div class="text-right"><p class="font-semibold text-lg ${change > 0 ? 'text-red-500' : 'text-green-600'}">${change >= 0 ? '+' : ''}${formatCurrency(change)}</p><p class="text-xs text-gray-500">from ${formatCurrency(baselineBill)}</p></div></div>`; }).join('')}</div>`;
+
+            // Sensitivity & Reporting
+            if(!dom.tabContents.sensitivity.innerHTML) {
+                dom.tabContents.sensitivity.innerHTML = `<div class="prose prose-sm max-w-none"><h4>Sensitivity Testing on Key Assumptions</h4><p>Test the impact of key assumptions on the final tariff. Adjust the sliders to see how a +/- 20% change affects the projected outcome.</p><div class="space-y-6 mt-4"><div><label for="capexSensitivity" class="font-semibold text-gray-700">Technology CAPEX Variation</label><input type="range" id="capexSensitivity" min="-20" max="20" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"><div id="capexSensitivityResult" class="mt-2 text-center font-medium"></div></div><div><label for="fuelSensitivity" class="font-semibold text-gray-700">Fossil Fuel Price Variation</label><input type="range" id="fuelSensitivity" min="-20" max="20" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"><div id="fuelSensitivityResult" class="mt-2 text-center font-medium"></div></div><div><label for="cfSensitivity" class="font-semibold text-gray-700">VRE Capacity Factor Variation</label><input type="range" id="cfSensitivity" min="-20" max="20" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"><div id="cfSensitivityResult" class="mt-2 text-center font-medium"></div></div></div><h4 class="mt-8">Reporting Tools</h4><p>Generate outputs for technical reports and stakeholder feedback sessions.</p><div class="flex space-x-2 mt-4"><button id="generateReportBtn" class="btn btn-primary">Generate Report Summary</button><button id="exportCsvBtn" class="btn btn-secondary">Export Data to CSV</button></div></div>`;
+                dom.sensitivity = { capex: document.getElementById('capexSensitivity'), fuel: document.getElementById('fuelSensitivity'), cf: document.getElementById('cfSensitivity'), capexResult: document.getElementById('capexSensitivityResult'), fuelResult: document.getElementById('fuelSensitivityResult'), cfResult: document.getElementById('cfSensitivityResult') };
+                Object.values(dom.sensitivity).forEach(input => { if (input.type === 'range') { input.addEventListener('input', runAllSensitivityAnalyses); } });
+                document.getElementById('generateReportBtn').addEventListener('click', generateReport);
+                document.getElementById('exportCsvBtn').addEventListener('click', exportToCsv);
+            }
+            
+            // Other Tabs
+            updateMarketAnalysisTab();
+            populateFitTab();
+            populateGeaSummaryTab();
+            populateCompareTab();
+            populateRoadmapTab();
+            populateDispatchTab(scenarioMetrics);
+            populateStabilityTab(scenarioMetrics);
+        }
+
+        // --- CHARTING FUNCTIONS ---
+        function createCharts() {
+            const chartOptions = (legendPos = 'bottom', title = '') => ({ 
+                responsive: true, 
+                maintainAspectRatio: true, 
+                plugins: { 
+                    legend: { position: legendPos, labels: { boxWidth: 12 } },
+                    title: { display: !!title, text: title }
+                } 
+            });
+            charts.mixChart = new Chart(document.getElementById('mixChart'), { type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] }, options: chartOptions() });
+            charts.emissionsChart = new Chart(document.getElementById('emissionsChart'), { type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] }, options: chartOptions() });
+            charts.lcoeChart = new Chart(document.getElementById('lcoeChart'), { type: 'bar', data: { labels: [], datasets: [{ label: 'LCOE (PhP/kWh)', data: [], backgroundColor: [] }] }, options: { ...chartOptions(), indexAxis: 'y', plugins: { legend: { display: false } } } });
+        }
+
+        function updateCharts(baselineMetrics, scenarioMetrics) {
+            if (!charts.mixChart) return; 
+            // Mix Chart
+            charts.mixChart.data.labels = scenarioMetrics.details.map(d => d.techName);
+            charts.mixChart.data.datasets[0].data = scenarioMetrics.details.map(d => d.capacity);
+            charts.mixChart.data.datasets[0].backgroundColor = scenarioMetrics.details.map(d => d.color);
+            charts.mixChart.update();
+
+            // Emissions Chart
+            const emittingTechs = scenarioMetrics.details.filter(d => d.emissions > 0);
+            charts.emissionsChart.data.labels = emittingTechs.map(d => d.techName);
+            charts.emissionsChart.data.datasets[0].data = emittingTechs.map(d => d.emissions);
+            charts.emissionsChart.data.datasets[0].backgroundColor = emittingTechs.map(d => d.color);
+            charts.emissionsChart.update();
+
+            // LCOE Chart
+            const sortedByLCOE = [...scenarioMetrics.details].sort((a, b) => a.lcoe - b.lcoe);
+            charts.lcoeChart.data.labels = sortedByLCOE.map(d => d.techName);
+            charts.lcoeChart.data.datasets[0].data = sortedByLCOE.map(d => d.lcoe);
+            charts.lcoeChart.data.datasets[0].backgroundColor = sortedByLCOE.map(d => d.color);
+            charts.lcoeChart.update();
+        }
+        
+        // --- SPUG HYBRIDIZATION TAB ---
+        function populateSpugTab() {
+            const container = dom.tabContents.spug;
+            if (container.innerHTML !== '') return; // Populate only once
+
+            container.innerHTML = `
+                <div class="prose prose-sm max-w-none mb-6">
+                    <h3 class="font-semibold">NAPOCOR SPUG Hybridization Program</h3>
+                    <h4>Executive Summary from "The Archipelago's Green Gambit" Report</h4>
+                    <p>The National Power Corporation (NAPOCOR) Small Power Utilities Group (SPUG) Hybridization Program represents a pivotal and strategic shift in the Philippines' approach to energy security, fiscal stability, and rural development. Historically reliant on economically and operationally unsustainable diesel-fired power plants, the program is a comprehensive response to the multifaceted crisis of volatile fuel prices and a heavy subsidy burden (UCME) on all Filipino consumers.</p>
+                    <p>Through an innovative Public-Private Partnership (PPP) model, the Accelerated Hybridization Program (AHP) leverages private sector capital and expertise to fast-track the transition to renewable energy (RE), primarily solar PV coupled with Battery Energy Storage Systems (BESS). This model transfers development and operational risk to private providers under 20-year power purchase agreements with NAPOCOR as the guaranteed off-taker. While the program holds immense promise for a sustainable energy future and substantial fiscal savings, its success hinges on addressing the precarious financial health of NAPOCOR and ensuring timely regulatory action from the ERC.</p>
+                </div>
+                <hr class="my-6">
+                <h3 class="font-semibold mb-4">Interactive SPUG Hybridization Simulator</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Left: Inputs -->
+                    <div class="space-y-4">
+                        <div>
+                            <label for="spugClusterSelect" class="input-label">Select AHP Pilot Cluster</label>
+                            <select id="spugClusterSelect" class="input-field">
+                                ${Object.keys(spugClusters).map(key => `<option value="${key}">${spugClusters[key].name}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="spugReCapacity" class="input-label">New RE Capacity (kW): <span id="spugReCapacityLabel" class="font-bold"></span></label>
+                            <input type="range" id="spugReCapacity" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" min="0" max="5000" step="100" value="1000">
+                        </div>
+                        <div>
+                            <label for="spugBessCapacity" class="input-label">BESS Capacity (kWh): <span id="spugBessCapacityLabel" class="font-bold"></span></label>
+                            <input type="range" id="spugBessCapacity" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" min="0" max="10000" step="200" value="2000">
+                        </div>
+                         <div>
+                            <label for="spugDieselPrice" class="input-label">Diesel Price (PhP/liter): <span id="spugDieselPriceLabel" class="font-bold"></span></label>
+                            <input type="range" id="spugDieselPrice" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" min="30" max="80" step="1" value="70">
+                        </div>
+                    </div>
+                    <!-- Right: Key Metrics -->
+                    <div class="space-y-3">
+                         <div class="card p-3 text-center">
+                            <h4 class="text-sm font-medium text-gray-500">New Hybrid LCOE</h4>
+                            <p id="spugLcoe" class="text-2xl font-bold text-blue-600"></p>
+                        </div>
+                        <div class="card p-3 text-center">
+                            <h4 class="text-sm font-medium text-gray-500">Annual UCME Savings</h4>
+                            <p id="spugSavings" class="text-2xl font-bold text-green-600"></p>
+                        </div>
+                        <div class="card p-3 text-center">
+                            <h4 class="text-sm font-medium text-gray-500">Diesel Displacement</h4>
+                            <p id="spugDisplacement" class="text-2xl font-bold text-gray-800"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Charts -->
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
+                    <div>
+                        <h3 class="font-semibold text-center mb-2">SPUG Annual Generation Mix (GWh)</h3>
+                        <canvas id="spugMixChart"></canvas>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-center mb-2">Annual Generation Cost (PhP Million)</h3>
+                        <canvas id="spugCostChart"></canvas>
+                    </div>
+                </div>
+            `;
+
+            // Create charts for this tab
+            charts.spugMixChart = new Chart(document.getElementById('spugMixChart'), {
+                type: 'doughnut',
+                data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
+            });
+            charts.spugCostChart = new Chart(document.getElementById('spugCostChart'), {
+                type: 'bar',
+                data: { labels: ['Diesel Only', 'Hybrid System'], datasets: [{ label: 'Annual Cost', data: [], backgroundColor: [techData['Oil-based'].color, techData['SolarBESS'].color] }] },
+                 options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+            });
+
+            // Add event listeners
+            ['spugClusterSelect', 'spugReCapacity', 'spugBessCapacity', 'spugDieselPrice'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updateSpugSimulator);
+            });
+            
+            // Initial calculation
+            updateSpugSimulator();
+        }
+
+        function updateSpugSimulator() {
+            const clusterKey = document.getElementById('spugClusterSelect').value;
+            const cluster = spugClusters[clusterKey];
+            const reCapacityKW = parseFloat(document.getElementById('spugReCapacity').value);
+            const bessCapacityKWH = parseFloat(document.getElementById('spugBessCapacity').value);
+            const dieselPrice = parseFloat(document.getElementById('spugDieselPrice').value);
+
+            // Update labels
+            document.getElementById('spugReCapacityLabel').textContent = `${formatNumber(reCapacityKW)} kW`;
+            document.getElementById('spugBessCapacityLabel').textContent = `${formatNumber(bessCapacityKWH)} kWh`;
+            document.getElementById('spugDieselPriceLabel').textContent = `₱${dieselPrice.toFixed(2)}`;
+
+            // --- Calculations ---
+            const DIESEL_LITER_PER_KWH = 0.28;
+            const DIESEL_LCOE_FIXED = 4.5; // Fixed O&M, etc.
+            const SOLAR_CF = 0.18; // SPUG areas might have lower CF
+            const SOLAR_CAPEX_KW = 70000; // PhP per kW
+            const BESS_CAPEX_KWH = 25000; // PhP per kWh
+            const LIFETIME = 20;
+            const CRF = 0.093 * Math.pow(1 + 0.093, LIFETIME) / (Math.pow(1 + 0.093, LIFETIME) - 1);
+
+            // Baseline (Diesel only)
+            const dieselFuelCostKwh = dieselPrice * DIESEL_LITER_PER_KWH;
+            const dieselLcoe = DIESEL_LCOE_FIXED + dieselFuelCostKwh;
+            const annualDemandKWH = cluster.annual_demand_gwh * 1e6;
+            const baselineAnnualCost = dieselLcoe * annualDemandKWH;
+
+            // Hybrid Scenario
+            const annualReGenKWH = reCapacityKW * SOLAR_CF * 8760;
+            const reDisplacedKWH = Math.min(annualReGenKWH, annualDemandKWH);
+            const remainingDieselKWH = annualDemandKWH - reDisplacedKWH;
+
+            const annualizedReCapex = (reCapacityKW * SOLAR_CAPEX_KW) * CRF;
+            const annualizedBessCapex = (bessCapacityKWH * BESS_CAPEX_KWH) * CRF;
+            const hybridAnnualCost = annualizedReCapex + annualizedBessCapex + (remainingDieselKWH * dieselLcoe);
+            
+            const hybridLcoe = hybridAnnualCost / annualDemandKWH;
+            const annualSavings = baselineAnnualCost - hybridAnnualCost;
+            const dieselDisplacement = (reDisplacedKWH / annualDemandKWH) * 100;
+
+            // --- Update Metrics ---
+            document.getElementById('spugLcoe').textContent = `${formatCurrency(hybridLcoe)}/kWh`;
+            document.getElementById('spugSavings').textContent = `${formatCurrency(annualSavings, 'compact')}`;
+            document.getElementById('spugDisplacement').textContent = `${dieselDisplacement.toFixed(1)}%`;
+
+            // --- Update Charts ---
+            // Mix Chart
+            charts.spugMixChart.data.labels = ['Diesel', 'Renewable Energy'];
+            charts.spugMixChart.data.datasets[0].data = [remainingDieselKWH / 1e6, reDisplacedKWH / 1e6]; // in GWh
+            charts.spugMixChart.data.datasets[0].backgroundColor = [techData['Oil-based'].color, techData['Solar'].color];
+            charts.spugMixChart.update();
+
+            // Cost Chart
+            charts.spugCostChart.data.datasets[0].data = [baselineAnnualCost / 1e6, hybridAnnualCost / 1e6]; // in PhP Million
+            charts.spugCostChart.update();
+        }
+
+
+        // --- FIT & GEA TABS ---
+        function populateFitTab() {
+            const container = dom.tabContents.fit;
+            if (container.querySelector('#fitTargetChart')) return; // Populate only once
+
+            container.innerHTML = `
+                <h3 class="font-semibold mb-2">Feed-in Tariff (FIT) Summary</h3>
+                <p class="text-sm text-gray-600 mb-4">Data as of June 2025, based on ERC publications.</p>
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+                    <div>
+                        <h4 class="font-semibold text-center mb-2">Subscribed vs. Target Capacity (MW)</h4>
+                        <canvas id="fitTargetChart"></canvas>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-center mb-2">Approved FIT Rates (PhP/kWh)</h4>
+                        <canvas id="fitRateChart"></canvas>
+                    </div>
+                </div>
+                <div id="fit-table-container" class="mb-8"></div>
+                <h3 class="font-semibold mb-2">Historical Feed-in Tariff Allowance (FIT-All) Rates</h3>
+                 <div class="mb-8">
+                    <canvas id="fitAllChart"></canvas>
+                </div>
+                <div id="fit-all-table-container"></div>
+                `;
+
+            let tableHtml = `<table><thead><tr><th>Technology</th><th>FIT Round</th><th>Approved Rate (PhP/kWh)</th><th>Target (MW)</th><th>Subscribed (MW)</th><th>No. of Plants</th></tr></thead><tbody>`;
+            fitData.forEach(item => {
+                tableHtml += `<tr><td>${item.tech}</td><td>${item.fit}</td><td>${formatCurrency(item.rate)}</td><td>${formatNumber(item.target)}</td><td>${formatNumber(item.subscribed, 2)}</td><td>${item.plants}</td></tr>`;
+            });
+            tableHtml += `</tbody></table>`;
+            document.getElementById('fit-table-container').innerHTML = tableHtml;
+            
+            let fitAllTableHtml = `<table><thead><tr><th>Effective Year/Period</th><th>FIT-All Rate (per kWh)</th><th>Key Developments & Notes</th></tr></thead><tbody>`;
+            fitAllData.forEach(item => {
+                fitAllTableHtml += `<tr><td>${item.year}</td><td>${item.rate === null ? 'Suspended' : formatCurrency(item.rate, 'standard', 4)}</td><td>${item.notes}</td></tr>`;
+            });
+            fitAllTableHtml += `</tbody></table>`;
+            document.getElementById('fit-all-table-container').innerHTML = fitAllTableHtml;
+
+            // --- Create Charts ---
+            const fitTargetData = fitData.filter(item => item.target !== null);
+            new Chart(document.getElementById('fitTargetChart'), {
+                type: 'bar',
+                data: {
+                    labels: fitTargetData.map(item => `${item.tech} - ${item.fit}`),
+                    datasets: [
+                        { label: 'Installation Target (MW)', data: fitTargetData.map(item => item.target), backgroundColor: '#a5b4fc', },
+                        { label: 'Subscribed Capacity (MW)', data: fitTargetData.map(item => item.subscribed), backgroundColor: '#4f46e5', }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } }
+            });
+
+            new Chart(document.getElementById('fitRateChart'), {
+                type: 'bar',
+                data: {
+                    labels: fitData.map(item => `${item.tech} - ${item.fit}`),
+                    datasets: [{
+                        label: 'Approved Rate (PhP/kWh)',
+                        data: fitData.map(item => item.rate),
+                        backgroundColor: fitData.map(item => {
+                            if (item.tech.includes('SOLAR')) return techData.Solar.color;
+                            if (item.tech.includes('WIND')) return techData.Wind.color;
+                            if (item.tech.includes('HYDRO')) return techData.Hydro.color;
+                            if (item.tech.includes('BIOMASS')) return techData.Biomass.color;
+                            return '#9ca3af';
+                        })
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+            });
+
+            new Chart(document.getElementById('fitAllChart'), {
+                type: 'line',
+                data: {
+                    labels: fitAllData.map(item => item.year),
+                    datasets: [{
+                        label: 'FIT-All Rate (PhP/kWh)',
+                        data: fitAllData.map(item => item.rate),
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function populateGeaSummaryTab() {
+            const container = dom.tabContents.gea;
+            if (container.querySelector('#geaSummaryChart')) return; // Populate only once
+
+            container.innerHTML = `
+                <h3 class="font-semibold mb-2">Green Energy Auction (GEA) 1-5 Summary</h3>
+                <p class="text-sm text-gray-600 mb-4">Consolidated awarded and targeted capacities from all GEA rounds.</p>
+                <div class="mb-8">
+                    <h4 class="font-semibold text-center mb-2">Total Capacity by Technology (MW)</h4>
+                    <canvas id="geaSummaryChart"></canvas>
+                </div>
+                <div id="gea-table-container"></div>`;
+
+            const geaSummary = preDefinedScenarios.gea1_to_5_total;
+            let tableHtml = `<table><thead><tr><th>Technology</th><th>Total Capacity (MW)</th></tr></thead><tbody>`;
+            geaSummary.forEach(item => {
+                const techName = techData[item.tech]?.name || item.tech;
+                tableHtml += `<tr><td>${techName}</td><td>${formatNumber(item.capacity)}</td></tr>`;
+            });
+            const totalGeaCapacity = geaSummary.reduce((sum, item) => sum + item.capacity, 0);
+            tableHtml += `<tr class="font-bold bg-gray-50"><td>Total</td><td>${formatNumber(totalGeaCapacity)}</td></tr>`;
+            tableHtml += `</tbody></table>`;
+            document.getElementById('gea-table-container').innerHTML = tableHtml;
+
+            // --- Create Chart ---
+            new Chart(document.getElementById('geaSummaryChart'), {
+                type: 'bar',
+                data: {
+                    labels: geaSummary.map(item => techData[item.tech]?.name || item.tech),
+                    datasets: [{
+                        label: 'Total Capacity (MW)',
+                        data: geaSummary.map(item => item.capacity),
+                        backgroundColor: geaSummary.map(item => techData[item.tech]?.color || '#9ca3af')
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+            });
+        }
+
+
+        // --- SENSITIVITY & REPORTING ---
+        function runSensitivityAnalysis(param, value) {
+            const baselineMetrics = calculateSystemMetrics(currentBaseline, true);
+            const scenarioSystem = [...currentBaseline, ...scenarioAdditions];
+            const currentScenarioMetrics = calculateSystemMetrics(scenarioSystem, false, {[param]: value});
+            const lowScenarioMetrics = calculateSystemMetrics(scenarioSystem, false, {[param]: -20});
+            const highScenarioMetrics = calculateSystemMetrics(scenarioSystem, false, {[param]: 20});
+            const currentImpact = ((currentScenarioMetrics.totalSystemCostPerKwh / baselineMetrics.totalSystemCostPerKwh) - 1) * 100;
+            const lowImpact = ((lowScenarioMetrics.totalSystemCostPerKwh / baselineMetrics.totalSystemCostPerKwh) - 1) * 100;
+            const highImpact = ((highScenarioMetrics.totalSystemCostPerKwh / baselineMetrics.totalSystemCostPerKwh) - 1) * 100;
+            return `Current (${value}%): <b class="${currentImpact > 0.1 ? 'text-red-500' : 'text-green-600'}">${currentImpact.toFixed(2)}%</b> | Range: [${lowImpact.toFixed(2)}% to ${highImpact.toFixed(2)}%]`;
+        }
+
+        function runAllSensitivityAnalyses() {
+            if (!dom.sensitivity.capexResult) return;
+            dom.sensitivity.capexResult.innerHTML = runSensitivityAnalysis('capex', dom.sensitivity.capex.value);
+            dom.sensitivity.fuelResult.innerHTML = runSensitivityAnalysis('fuel', dom.sensitivity.fuel.value);
+            dom.sensitivity.cfResult.innerHTML = runSensitivityAnalysis('cf', dom.sensitivity.cf.value);
+        }
+
+        function generateReport() {
+            const baselineMetrics = calculateSystemMetrics(currentBaseline, true);
+            const scenarioSystem = [...currentBaseline, ...scenarioAdditions];
+            const scenarioMetrics = calculateSystemMetrics(scenarioSystem);
+            const tariffImpactValue = ((scenarioMetrics.totalSystemCostPerKwh / baselineMetrics.totalSystemCostPerKwh) - 1) * 100;
+
+            let report = `SCENARIO ANALYSIS REPORT\n========================\n\n`;
+            report += `Date: ${new Date().toLocaleDateString()}\n`;
+            report += `Grid: ${dom.gridSelect.options[dom.gridSelect.selectedIndex].text}\n`;
+            report += `Scenario: ${dom.scenarioSelect.options[dom.scenarioSelect.selectedIndex].text}\n\n`;
+            report += `KEY METRICS:\n - Baseline System Cost: ${formatCurrency(baselineMetrics.totalSystemCostPerKwh)}/kWh\n - Scenario System Cost: ${formatCurrency(scenarioMetrics.totalSystemCostPerKwh)}/kWh\n - Projected Tariff Impact: ${tariffImpactValue.toFixed(2)}%\n - Total Scenario Capacity: ${formatNumber(scenarioMetrics.totalCapacity)} MW\n - Total Annual Generation: ${formatNumber(scenarioMetrics.totalAnnualGeneration, 0)} GWh\n - Total Annual Emissions: ${formatTons(scenarioMetrics.totalEmissions)}\n\n`;
+            report += `SCENARIO ADDITIONS:\n`;
+            if (scenarioAdditions.length > 0) {
+                scenarioAdditions.forEach(p => { report += ` - +${p.capacity} MW of ${techData[p.tech].name || p.tech}\n`; });
+            } else { report += ` - No custom additions.\n`; }
+            report += `\nDATA TABLE:\nTechnology, Capacity (MW), LCOE (PHP/kWh), Annual Gen (GWh)\n`;
+            scenarioMetrics.details.forEach(d => { report += `${d.techName}, ${formatNumber(d.capacity)}, ${formatNumber(d.lcoe, 2)}, ${formatNumber(d.annualGenerationGWh)}\n`; });
+            
+            dom.reportText.value = report;
+            dom.reportModal.classList.remove('hidden');
+        }
+        
+        function exportToCsv() {
+            const scenarioSystem = [...currentBaseline, ...scenarioAdditions];
+            const scenarioMetrics = calculateSystemMetrics(scenarioSystem);
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Technology,Capacity (MW),LCOE (PhP/kWh),Annual Generation (GWh),Annual Emissions (tCO2)\n";
+            scenarioMetrics.details.forEach(row => { csvContent += `${row.techName},${row.capacity},${row.lcoe.toFixed(4)},${row.annualGenerationGWh.toFixed(2)},${row.emissions.toFixed(0)}\n`; });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "scenario_data.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- OFF-GRID CALCULATOR ---
+        function calculateOffGridTariff() {
+            if (!document.getElementById('offgridHH')) return;
+            const hh = parseFloat(document.getElementById('offgridHH').value) || 0;
+            const solarKW = parseFloat(document.getElementById('offgridSolar').value) || 0;
+            const batteryKWH = parseFloat(document.getElementById('offgridBattery').value) || 0;
+            const dieselKW = parseFloat(document.getElementById('offgridDiesel').value) || 0;
+            const solarLCOE = 8.0, batteryLCOE = 12.0, dieselLCOE = 20.0;
+            const dailySolarGen = solarKW * 4.0;
+            const dailyDemand = hh * 3.0;
+            let dieselGen = Math.max(0, dailyDemand - dailySolarGen);
+            let batteryThroughput = Math.min(dailySolarGen, batteryKWH, dailyDemand);
+            const totalDailyCost = (dailySolarGen * solarLCOE) + (batteryThroughput * batteryLCOE) + (dieselGen * dieselLCOE);
+            const blendedTariff = dailyDemand > 0 ? totalDailyCost / dailyDemand : 0;
+            const costPerHH = hh > 0 ? totalDailyCost / hh : 0;
+            document.getElementById('offgridTariff').textContent = `${formatCurrency(blendedTariff)}/kWh`;
+            document.getElementById('offgridDailyCost').textContent = `${formatCurrency(costPerHH)}`;
+        }
+
+        // --- MARKET ANALYSIS ---
+        function updateMarketAnalysisTab() {
+            const lastAdded = scenarioAdditions.length > 0 ? scenarioAdditions[scenarioAdditions.length - 1] : null;
+            let content = `<h3 class="font-semibold mb-2">Market Competitiveness Analysis</h3>`;
+            const grid = dom.gridSelect.value;
+
+            if (grid === 'national') {
+                 content += `<p class="text-sm text-gray-600">Market analysis is available for regional grids (Luzon, Visayas, Mindanao). Please select a regional grid to view competitiveness insights.</p>`;
+                dom.tabContents.market.innerHTML = content;
+                return;
+            }
+
+            if (!lastAdded || dom.scenarioSelect.value !== 'custom') {
+                content += `<p class="text-sm text-gray-600">Add a custom plant to the scenario to analyze its competitiveness.</p>`;
+                dom.tabContents.market.innerHTML = content;
+                return;
+            }
+
+            const plant = { ...lastAdded };
+            const plantMetrics = calculateSystemMetrics([plant], true);
+            const lcoe = plantMetrics.totalSystemCostPerKwh;
+
+            const competitiveRanges = {
+                luzon: { Solar: [3.76, 4.23], Wind: [4.72, 5.22] },
+                visayas: { Solar: [3.58, 3.96], Wind: [3.93, 4.44] },
+                mindanao: { Solar: [4.27, 4.68], Wind: [5.82, 6.68] }
+            };
+            
+            const techType = plant.tech.includes('Solar') ? 'Solar' : (plant.tech.includes('Wind') ? 'Wind' : null);
+            const range = techType ? competitiveRanges[grid][techType] : null;
+
+            let insight = 'N/A';
+            let insightColor = 'text-gray-800';
+            if (range) {
+                if (lcoe < range[0]) {
+                    insight = 'Highly Competitive';
+                    insightColor = 'text-green-600';
+                } else if (lcoe <= range[1]) {
+                    insight = 'Competitive';
+                    insightColor = 'text-yellow-600';
+                } else {
+                    insight = 'May Face Challenges';
+                    insightColor = 'text-red-500';
+                }
+            }
+
+            content += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="card p-4 bg-gray-50">
+                <h4 class="font-semibold">Your Project's LCOE</h4>
+                <p class="text-3xl font-bold text-blue-600">${formatCurrency(lcoe)}</p>
+                <p class="text-sm text-gray-500">${formatNumber(plant.capacity)} MW ${techData[plant.tech].name || plant.tech} in ${grid.charAt(0).toUpperCase() + grid.slice(1)}</p>
+            </div><div class="card p-4 bg-gray-50">
+                <h4 class="font-semibold">Regional Competitive LCOE Range</h4>
+                <p class="text-3xl font-bold text-gray-800">${range ? `${formatCurrency(range[0])} - ${formatCurrency(range[1])}` : 'N/A'}</p>
+                <p class="text-sm text-gray-500">For ${techType} projects in this region (Source: Aurora)</p>
+            </div></div>
+            <div class="card p-4 mt-4"><h4 class="font-semibold">Analyst Insight</h4><p class="text-lg font-bold ${insightColor}">${insight}</p><p class="text-sm text-gray-600 mt-1">Based on a comparison with forecasted merchant potential and LCOE of competing projects in the region.</p></div>`;
+            dom.tabContents.market.innerHTML = content;
+        }
+        
+        // --- NEW FEATURES ---
+        function populateCompareTab() {
+            const container = dom.tabContents.compare;
+            let content = `<div class="flex justify-between items-center mb-4"><h3 class="font-semibold">Scenario Comparison</h3><button id="clearPinnedBtn" class="btn btn-secondary btn-sm">Clear Pinned</button></div>`;
+            if (pinnedScenarios.length === 0) {
+                content += `<p class="text-sm text-gray-600">No scenarios pinned yet. Configure a scenario and click "Pin Scenario for Comparison" to add it here.</p>`;
+            } else {
+                content += `<div class="overflow-x-auto"><table class="w-full"><thead><tr><th class="text-left">Metric</th>`;
+                pinnedScenarios.forEach((_, index) => {
+                    content += `<th class="text-center">Scenario ${index + 1}</th>`;
+                });
+                content += `</tr></thead><tbody>`;
+                
+                const metrics = ['Scenario Name', 'Blended Cost / kWh', 'Tariff Impact', 'Total Capacity (MW)', 'Annual Emissions'];
+                metrics.forEach(metric => {
+                    content += `<tr><td class="font-semibold">${metric}</td>`;
+                    pinnedScenarios.forEach(scenario => {
+                        let value = '';
+                        switch(metric) {
+                            case 'Scenario Name': value = scenario.name; break;
+                            case 'Blended Cost / kWh': value = formatCurrency(scenario.metrics.totalSystemCostPerKwh); break;
+                            case 'Tariff Impact': value = `${scenario.tariffImpact.toFixed(2)}%`; break;
+                            case 'Total Capacity (MW)': value = formatNumber(scenario.metrics.totalCapacity); break;
+                            case 'Annual Emissions': value = formatTons(scenario.metrics.totalEmissions); break;
+                        }
+                        content += `<td class="text-center">${value}</td>`;
+                    });
+                    content += `</tr>`;
+                });
+                content += `</tbody></table></div>`;
+            }
+            container.innerHTML = content;
+            if (document.getElementById('clearPinnedBtn')) {
+                document.getElementById('clearPinnedBtn').addEventListener('click', () => {
+                    pinnedScenarios = [];
+                    populateCompareTab();
+                });
+            }
+        }
+
+        function updateProjectFinanceTab() {
+            const container = dom.tabContents.finance;
+            const lastAdded = scenarioAdditions.length > 0 && dom.scenarioSelect.value === 'custom' ? scenarioAdditions[scenarioAdditions.length - 1] : null;
+
+            let content = `<h3 class="font-semibold mb-2">Simplified Project Financial Analysis</h3>`;
+            if (!lastAdded) {
+                content += `<p class="text-sm text-gray-600">Add a single custom plant to the scenario to analyze its high-level financial viability.</p>`;
+                container.innerHTML = content;
+                return;
+            }
+
+            content += `<p class="text-sm text-gray-600 mb-4">Analysis for the last added plant: <strong>${lastAdded.capacity} MW ${techData[lastAdded.tech].name || lastAdded.tech}</strong>. This is a simplified model for illustrative purposes.</p>`;
+            content += `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="electricityPrice" class="input-label">Projected Electricity Price (PhP/kWh)</label>
+                    <input type="number" id="electricityPrice" class="input-field" value="5.0" step="0.1">
+                </div>
+                <div id="finance-results" class="space-y-4 card p-4 bg-gray-50"></div>
+            </div>`;
+            container.innerHTML = content;
+
+            const priceInput = document.getElementById('electricityPrice');
+            const calculateFinance = () => {
+                const electricityPrice = parseFloat(priceInput.value) || 0;
+                const plantMetrics = calculateSystemMetrics([lastAdded], true);
+                const tech = techData[lastAdded.tech];
+
+                const totalProjectCost = lastAdded.capacity * tech.capex * 1e6; // in PhP
+                const annualGenerationKWh = plantMetrics.totalAnnualGeneration * 1e6;
+                const annualRevenue = annualGenerationKWh * electricityPrice;
+                const annualOpex = lastAdded.capacity * tech.opex * 1e6;
+                const annualFuelCost = annualGenerationKWh * tech.fuel_kwh;
+                const annualProfit = annualRevenue - annualOpex - annualFuelCost;
+                const paybackPeriod = annualProfit > 0 ? totalProjectCost / annualProfit : Infinity;
+
+                const resultsContainer = document.getElementById('finance-results');
+                resultsContainer.innerHTML = `
+                    <div><p class="text-sm text-gray-500">Estimated Annual Revenue</p><p class="font-bold text-lg">${formatCurrency(annualRevenue)}</p></div>
+                    <div><p class="text-sm text-gray-500">Simple Payback Period</p><p class="font-bold text-lg">${isFinite(paybackPeriod) ? `${paybackPeriod.toFixed(1)} years` : 'N/A'}</p></div>
+                `;
+            };
+            
+            priceInput.addEventListener('input', calculateFinance);
+            calculateFinance();
+        }
+
+        function populateRoadmapTab() {
+            const container = dom.tabContents.roadmap;
+            if (container.innerHTML !== '') return; // Populate only once
+
+            container.innerHTML = `
+                <h3 class="font-semibold mb-2">National Nuclear Energy Roadmap</h3>
+                <p class="text-sm text-gray-600 mb-4">Key milestones from the Philippine Nuclear Energy Program (PNEP) 2024-2050.</p>
+                <div class="relative border-l-4 border-blue-500 pl-6 space-y-8">
+                    <div class="absolute -left-1.5 w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <div>
+                        <p class="font-bold text-blue-600">2025-2028: Milestone 2 - Regulatory Compliance</p>
+                        <ul class="list-disc pl-5 text-sm text-gray-700 mt-1">
+                            <li>Passage of comprehensive nuclear regulatory framework law.</li>
+                            <li>Operationalization of the independent nuclear regulatory body (PhilATOM).</li>
+                            <li>Finalize funding and financing mechanisms for NPP projects.</li>
+                            <li>Include NPP requirements in the Transmission Development Plan (TDP).</li>
+                        </ul>
+                    </div>
+                    <div class="absolute -left-1.5 w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <div>
+                        <p class="font-bold text-blue-600">2028: NPP Construction Begins</p>
+                        <p class="text-sm text-gray-700 mt-1">Official start of construction for the first nuclear power plant.</p>
+                    </div>
+                    <div class="absolute -left-1.5 w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <div>
+                        <p class="font-bold text-blue-600">2032: First Power from NPP</p>
+                        <ul class="list-disc pl-5 text-sm text-gray-700 mt-1">
+                            <li>Commissioning and grid synchronization of the first NPP.</li>
+                            <li>Target of at least <strong>1,200 MW</strong> of nuclear capacity online.</li>
+                        </ul>
+                    </div>
+                     <div class="absolute -left-1.5 w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <div>
+                        <p class="font-bold text-blue-600">2035: Capacity Increase</p>
+                         <p class="text-sm text-gray-700 mt-1">Projected increase to a total of <strong>2,400 MW</strong> of nuclear capacity.</p>
+                    </div>
+                    <div class="absolute -left-1.5 w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <div>
+                        <p class="font-bold text-blue-600">2050: Long-Term Goal</p>
+                        <p class="text-sm text-gray-700 mt-1">Target total nuclear capacity of <strong>4,800 MW</strong> as part of the Clean Energy Scenario.</p>
+                    </div>
+                </div>`;
+        }
+        
+        function populateDispatchTab(scenarioMetrics) {
+            const container = dom.tabContents.dispatch;
+            if (!scenarioMetrics || !scenarioMetrics.details) {
+                container.innerHTML = '<p class="text-sm text-gray-600">Loading scenario data...</p>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <h3 class="font-semibold mb-2">WESM Merit Order Dispatch Simulation</h3>
+                <p class="text-sm text-gray-600 mb-4">This simplified model dispatches plants based on their marginal cost (fuel + variable O&M) to meet demand.</p>
+                <div>
+                    <label for="demandSlider" class="input-label">Simulated System Demand (MW)</label>
+                    <input type="range" id="demandSlider" class="w-full">
+                    <p class="text-center font-bold text-lg" id="demandLabel"></p>
+                </div>
+                <div class="mt-4">
+                    <canvas id="dispatchChart"></canvas>
+                </div>
+                 <div id="dispatch-summary" class="mt-4 grid grid-cols-2 gap-4"></div>
+            `;
+            
+            const plants = [...scenarioMetrics.details].sort((a, b) => a.marginalCost - b.marginalCost);
+            const totalCapacity = plants.reduce((sum, p) => sum + p.capacity, 0);
+
+            const slider = document.getElementById('demandSlider');
+            slider.min = 0;
+            slider.max = totalCapacity;
+            slider.value = totalCapacity * 0.6; // Default to 60% demand
+
+            if(charts.dispatchChart) charts.dispatchChart.destroy();
+            charts.dispatchChart = new Chart(document.getElementById('dispatchChart'), {
+                type: 'bar',
+                data: {
+                    labels: plants.map(p => p.techName),
+                    datasets: [{
+                        label: 'Capacity (MW)',
+                        data: plants.map(p => p.capacity),
+                        backgroundColor: plants.map(p => p.color)
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    scales: { x: { stacked: true }, y: { stacked: true } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            const updateDispatch = () => {
+                const demand = parseFloat(slider.value);
+                document.getElementById('demandLabel').textContent = `${formatNumber(demand, 0)} MW`;
+
+                let cumulativeCapacity = 0;
+                let marketClearingPrice = 0;
+                const backgroundColors = [];
+
+                for (const plant of plants) {
+                    if (cumulativeCapacity < demand) {
+                        backgroundColors.push(plant.color);
+                        marketClearingPrice = plant.marginalCost;
+                    } else {
+                        backgroundColors.push('#d1d5db'); // Gray out non-dispatched plants
+                    }
+                    cumulativeCapacity += plant.capacity;
+                }
+                
+                charts.dispatchChart.data.datasets[0].backgroundColor = backgroundColors;
+                charts.dispatchChart.update();
+
+                document.getElementById('dispatch-summary').innerHTML = `
+                    <div class="card p-4 text-center"><h4 class="text-sm font-medium text-gray-500">Market Clearing Price</h4><p class="text-2xl font-bold">${formatCurrency(marketClearingPrice)}/kWh</p></div>
+                    <div class="card p-4 text-center"><h4 class="text-sm font-medium text-gray-500">Dispatched Capacity</h4><p class="text-2xl font-bold">${formatNumber(Math.min(cumulativeCapacity, demand), 0)} MW</p></div>
+                `;
+            };
+
+            slider.addEventListener('input', updateDispatch);
+            updateDispatch();
+        }
+
+        function populateStabilityTab(scenarioMetrics) {
+            const container = dom.tabContents.stability;
+             if (!scenarioMetrics || !scenarioMetrics.details) {
+                container.innerHTML = '<p class="text-sm text-gray-600">Loading scenario data...</p>';
+                return;
+            }
+            container.innerHTML = `
+                <h3 class="font-semibold mb-2">Grid Stability Analysis</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold mb-2">N-1 Contingency Simulation</h4>
+                        <p class="text-sm text-gray-600 mb-2">Simulate the outage of a major transmission line to assess grid resilience.</p>
+                        <select id="contingencySelect" class="input-field">
+                            <option value="none">No Contingency</option>
+                            <optgroup label="Major Interconnections">
+                                <option value="luzon_visayas">Luzon-Visayas HVDC</option>
+                                <option value="visayas_mindanao">Mindanao-Visayas Interconnector</option>
+                                <option value="batangas_mindoro">Batangas-Mindoro Interconnection</option>
+                                <option value="palawan_mindoro">Palawan-Mindoro Interconnection</option>
+                                <option value="mindoro_panay">Mindoro-Panay Interconnection</option>
+                            </optgroup>
+                            <optgroup label="Luzon Backbones">
+                                <option value="western_luzon">Western Luzon 500kV Backbone</option>
+                                <option value="metro_manila_loop">Metro Manila 500kV Backbone Loop</option>
+                                <option value="nagsaag_kabugao">Nagsaag-Kabugao 500kV Backbone</option>
+                                <option value="bolo_laoag">Bolo-Laoag 500kV Backbone</option>
+                                <option value="sanjose_tayabas">San Jose-Tayabas 500kV Line</option>
+                            </optgroup>
+                             <optgroup label="Visayas Backbones">
+                                <option value="cnp_backbone">Cebu-Negros-Panay 230kV Backbone</option>
+                                <option value="cbl_backbone">Cebu-Bohol-Leyte 230kV Backbone</option>
+                            </optgroup>
+                             <optgroup label="Mindanao Backbones">
+                                <option value="eastern_mindanao">Eastern Mindanao 230kV Backbone</option>
+                                <option value="western_mindanao">Western Mindanao 230kV Backbone</option>
+                            </optgroup>
+                        </select>
+                        <div id="contingency-impact" class="mt-2 text-sm p-3 bg-yellow-100 text-yellow-800 rounded-lg hidden"></div>
+                    </div>
+                     <div>
+                        <h4 class="font-semibold mb-2">Reactive Power Adequacy</h4>
+                        <p class="text-sm text-gray-600 mb-2">Checks for potential voltage stability issues from large generation additions in areas with low local demand.</p>
+                        <div id="reactive-power-check" class="mt-2 text-sm p-3 bg-blue-100 text-blue-800 rounded-lg"></div>
+                    </div>
+                </div>
+            `;
+            
+            const contingencyGridMap = {
+                'luzon_visayas': ['luzon', 'visayas'],
+                'visayas_mindanao': ['visayas', 'mindanao'],
+                'western_luzon': ['luzon'],
+                'metro_manila_loop': ['luzon'],
+                'nagsaag_kabugao': ['luzon'],
+                'batangas_mindoro': ['luzon'],
+                'cnp_backbone': ['visayas'],
+                'cbl_backbone': ['visayas'],
+                'eastern_mindanao': ['mindanao'],
+                'western_mindanao': ['mindanao'],
+                'palawan_mindoro': ['luzon'],
+                'mindoro_panay': ['luzon', 'visayas'],
+                'bolo_laoag': ['luzon'],
+                'naga_tublijon': ['luzon'],
+                'sanjose_tayabas': ['luzon']
+            };
+
+            document.getElementById('contingencySelect').addEventListener('change', (e) => {
+                const impactEl = document.getElementById('contingency-impact');
+                const selectedContingency = e.target.value;
+                
+                if (selectedContingency === 'none') {
+                    impactEl.classList.add('hidden');
+                    updateUI(); // Recalculate without contingency
+                    return;
+                }
+                
+                let impactText = '';
+                const grid = dom.gridSelect.value;
+                let contingencyParams = {};
+                const affectedGrids = contingencyGridMap[selectedContingency];
+
+                if (affectedGrids && (grid === 'national' || affectedGrids.includes(grid))) {
+                    impactText = `<strong>Impact:</strong> Simulating outage increases VRE curtailment risk by 15% and grid reinforcement costs by ₱0.20/kWh in the affected region(s) due to severe congestion.`;
+                    contingencyParams = {
+                        vreCurtailmentRisk: (parseFloat(dom.inputs.vreCurtailmentRisk.value) + 15),
+                        gridReinforcementCost: parseFloat(dom.inputs.gridReinforcementCost.value) + 0.20,
+                    };
+                } else {
+                    impactText = 'This contingency primarily affects other grids. Impact on the selected grid is minimal in this simplified model.';
+                }
+                
+                const baselineMetrics = calculateSystemMetrics(currentBaseline, true);
+                const scenarioSystem = [...currentBaseline, ...scenarioAdditions];
+                const contingencyMetrics = calculateSystemMetrics(scenarioSystem, false, {}, contingencyParams);
+                
+                document.getElementById('totalSystemCost').textContent = `${formatCurrency(contingencyMetrics.totalSystemCostPerKwh)}/kWh`;
+                const tariffImpactValue = ((contingencyMetrics.totalSystemCostPerKwh / baselineMetrics.totalSystemCostPerKwh) - 1) * 100;
+                const tariffImpactEl = document.getElementById('tariffImpact');
+                tariffImpactEl.textContent = `${tariffImpactValue.toFixed(2)}%`;
+                tariffImpactEl.className = 'text-2xl font-bold ';
+                if (tariffImpactValue > 0.1) tariffImpactEl.classList.add('text-red-500');
+                else if (tariffImpactValue < -0.1) tariffImpactEl.classList.add('text-green-600');
+                else tariffImpactEl.classList.add('text-gray-800');
+
+
+                impactEl.innerHTML = impactText;
+                impactEl.classList.remove('hidden');
+            });
+
+            // Reactive Power Check
+            const lastAdded = scenarioAdditions.length > 0 ? scenarioAdditions[scenarioAdditions.length - 1] : null;
+            const reactiveCheckEl = document.getElementById('reactive-power-check');
+            if (lastAdded) {
+                 const grid = dom.gridSelect.value;
+                 const gridDemand = { luzon: 12100, visayas: 2300, mindanao: 2100 };
+                 if (grid !== 'national' && lastAdded.capacity > gridDemand[grid] * 0.2) {
+                     reactiveCheckEl.innerHTML = `<strong>Warning:</strong> A new ${lastAdded.capacity} MW plant was added to the ${grid} grid, which has a peak demand of ~${formatNumber(gridDemand[grid])} MW. This large capacity addition may cause voltage stability issues. Reactive power support (e.g., STATCOMs, capacitor banks) may be required.`;
+                 } else {
+                     reactiveCheckEl.textContent = 'No significant reactive power issues detected for the current scenario.';
+                 }
+            } else {
+                reactiveCheckEl.textContent = 'Add a custom plant to check for potential reactive power issues.';
+            }
+
+        }
+
+
+        // --- EVENT HANDLERS ---
+        dom.addPlantBtn.addEventListener('click', () => {
+            dom.scenarioSelect.value = 'custom';
+            const modelId = dom.inputs.specificModel.value;
+            const plantType = dom.inputs.plantType.value;
+            let capacity = parseFloat(dom.inputs.capacity.value);
+            let techKey = plantType;
+
+            if (plantType === 'Nuclear') {
+                const model = specificModels.Nuclear.find(r => r.id === modelId);
+                if (model) {
+                    techKey = model.type;
+                }
+            }
+            
+            if (capacity > 0) {
+                scenarioAdditions.push({ tech: techKey, capacity: capacity });
+                updateUI();
+            }
+        });
+        
+        dom.pinScenarioBtn.addEventListener('click', () => {
+            if (pinnedScenarios.length >= 3) {
+                alert("You can only pin up to 3 scenarios for comparison.");
+                return;
+            }
+            const baselineMetrics = calculateSystemMetrics(currentBaseline, true);
+            const scenarioSystem = [...currentBaseline, ...scenarioAdditions];
+            const metrics = calculateSystemMetrics(scenarioSystem);
+            const tariffImpact = ((metrics.totalSystemCostPerKwh / baselineMetrics.totalSystemCostPerKwh) - 1) * 100;
+            
+            pinnedScenarios.push({
+                name: dom.scenarioSelect.value === 'custom' ? `Custom Scenario ${pinnedScenarios.length + 1}` : dom.scenarioSelect.options[dom.scenarioSelect.selectedIndex].text,
+                metrics: metrics,
+                tariffImpact: tariffImpact
+            });
+            populateCompareTab();
+        });
+        
+        function populatePlantTypeDropdown() {
+            const plantTypeSelect = dom.inputs.plantType;
+            plantTypeSelect.innerHTML = '';
+            Object.keys(specificModels).forEach(techKey => {
+                const option = document.createElement('option');
+                option.value = techKey;
+                option.textContent = techData[techKey].name || techKey;
+                plantTypeSelect.appendChild(option);
+            });
+        }
+        
+        function populateSpecificModelDropdown() {
+            const selectedTech = dom.inputs.plantType.value;
+            const modelSelect = dom.inputs.specificModel;
+            modelSelect.innerHTML = '';
+
+            const models = specificModels[selectedTech];
+            if (models) {
+                if (selectedTech === 'Nuclear') {
+                    const smrGroup = document.createElement('optgroup');
+                    smrGroup.label = 'Small Modular Reactors (SMR)';
+                    const largeGroup = document.createElement('optgroup');
+                    largeGroup.label = 'Large Conventional Reactors';
+
+                    models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.id;
+                        option.textContent = model.name;
+                        if (model.type === 'Nuclear_SMR') {
+                            smrGroup.appendChild(option);
+                        } else {
+                            largeGroup.appendChild(option);
+                        }
+                    });
+                    modelSelect.appendChild(smrGroup);
+                    modelSelect.appendChild(largeGroup);
+                } else {
+                     models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.id;
+                        option.textContent = model.name;
+                        modelSelect.appendChild(option);
+                    });
+                }
+            }
+            handleModelChange();
+        }
+
+        function handleModelChange() {
+            const selectedTech = dom.inputs.plantType.value;
+            const selectedModelId = dom.inputs.specificModel.value;
+            const models = specificModels[selectedTech];
+            if (!models) return;
+            const model = models.find(m => m.id === selectedModelId);
+
+            if (model) {
+                dom.inputs.capacity.value = model.capacity;
+                if (model.id.toLowerCase().includes('generic')) {
+                    dom.inputs.capacity.readOnly = false;
+                    dom.inputs.unitCountWrapper.classList.add('hidden');
+                    dom.inputs.capacityHelper.textContent = ``;
+                } else {
+                    dom.inputs.capacity.readOnly = true;
+                    dom.inputs.unitCountWrapper.classList.remove('hidden');
+                    dom.inputs.capacityHelper.textContent = `Capacity is fixed for this model.`;
+                }
+            }
+        }
+        
+        dom.inputs.unitCount.addEventListener('input', () => {
+            const selectedTech = dom.inputs.plantType.value;
+            const selectedModelId = dom.inputs.specificModel.value;
+            const models = specificModels[selectedTech];
+             if (!models) return;
+            const model = models.find(m => m.id === selectedModelId);
+            if (model) {
+                const count = parseInt(dom.inputs.unitCount.value) || 1;
+                dom.inputs.capacity.value = (model.capacity * count).toFixed(2);
+            }
+        });
+
+        dom.inputs.plantType.addEventListener('change', populateSpecificModelDropdown);
+        dom.inputs.specificModel.addEventListener('change', handleModelChange);
+
+        dom.scenarioSelect.addEventListener('change', (e) => {
+            const selectedScenario = e.target.value;
+            scenarioAdditions = [...preDefinedScenarios[selectedScenario]];
+            updateUI();
+        });
+
+        dom.gridSelect.addEventListener('change', updateUI);
+        dom.baselineSelect.addEventListener('change', updateUI);
+
+        dom.resetBtn.addEventListener('click', () => {
+            dom.scenarioSelect.value = 'custom';
+            scenarioAdditions = [];
+            dom.inputs.demandScenario.value = "5.5";
+            dom.inputs.tdMarkup.value = "40";
+            dom.inputs.gridReinforcementCost.value = "0.10";
+            dom.inputs.reCostReduction.value = "2.0";
+            dom.inputs.vreCurtailmentRisk.value = "5";
+            dom.inputs.vreAncillaryCost.value = "0.0015";
+            dom.inputs.gridUpgrade.value = "upgraded";
+            updateUI();
+        });
+
+        dom.tabNav.addEventListener('click', (e) => {
+            if (e.target.matches('.tab-button')) {
+                dom.tabNav.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                Object.values(dom.tabContents).forEach(content => {
+                    if (content) content.classList.add('hidden');
+                });
+                e.target.classList.add('active');
+                if (dom.tabContents[e.target.dataset.tab]) {
+                    dom.tabContents[e.target.dataset.tab].classList.remove('hidden');
+                }
+            }
+        });
+        
+        document.querySelectorAll('.accordion-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const content = document.getElementById(`${header.dataset.accordion}-content`);
+                const icon = header.querySelector('svg');
+                content.classList.toggle('open');
+                icon.classList.toggle('rotate-180');
+            });
+        });
+
+        dom.closeModalBtn.addEventListener('click', () => dom.reportModal.classList.add('hidden'));
+        dom.copyReportBtn.addEventListener('click', () => {
+            dom.reportText.select();
+            document.execCommand('copy');
+        });
+
+        Object.values(dom.inputs).forEach(input => {
+            if (input.id !== 'plantType' && input.id !== 'capacity' && input.id !== 'specificModel' && input.id !== 'unitCount') {
+                 input.addEventListener('change', updateUI)
+            }
+        });
+        
+        // --- INITIALIZATION ---
+        function init() {
+            populatePlantTypeDropdown();
+            populateSpecificModelDropdown();
+            createCharts(); // Create all chart objects first
+            updateUI();
+        }
+
+        init();
+    });
+    </script>
+
+</body>
+</html>
