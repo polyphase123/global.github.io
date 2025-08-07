@@ -60,16 +60,25 @@
             display: block;
         }
         .tab-button {
-            padding: 0.75rem 1rem;
+            padding: 0.5rem 1.25rem;
             font-weight: 600;
             cursor: pointer;
-            border-bottom: 4px solid transparent;
-            color: #6b7280;
+            color: #4b5563;
             white-space: nowrap;
+            border-radius: 9999px; /* pill shape */
+            transition: all 0.2s ease-in-out;
+            flex-shrink: 0;
+        }
+        .tab-button:hover {
+            background-color: #e5e7eb;
+            color: #111827;
         }
         .tab-button.active {
-            color: #1d4ed8;
-            border-bottom-color: #2563eb;
+            color: white;
+            background-color: #2563eb;
+        }
+        .tab-button.active:hover {
+             background-color: #1d4ed8;
         }
         .prose h4 {
             font-size: 1.125rem;
@@ -305,7 +314,7 @@
             <!-- Right Panel: Dashboard & Results -->
             <div class="lg:col-span-2 space-y-8">
                 <!-- Key Metrics -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="card p-4 text-center">
                         <h3 class="text-sm font-medium text-gray-500">Blended Cost / kWh</h3>
                         <p id="totalSystemCost" class="text-2xl font-bold text-gray-800"></p>
@@ -316,11 +325,7 @@
                     </div>
                     <div class="card p-4 text-center">
                         <h3 class="text-sm font-medium text-gray-500">RE Share (% GWh)</h3>
-                        <p id="reShare" class="text-2xl font-bold text-gray-800"></p>
-                    </div>
-                    <div class="card p-4 text-center">
-                        <h3 class="text-sm font-medium text-gray-500">Self-Sufficiency</h3>
-                        <p id="selfSufficiency" class="text-2xl font-bold text-gray-800"></p>
+                        <p id="reShare" class="text-2xl font-bold text-green-600"></p>
                     </div>
                     <div class="card p-4 text-center">
                         <h3 class="text-sm font-medium text-gray-500">Annual Fuel Import Cost</h3>
@@ -330,7 +335,19 @@
                         <h3 class="text-sm font-medium text-gray-500">System Inertia</h3>
                         <p id="systemInertia" class="text-2xl font-bold text-gray-800"></p>
                     </div>
-                     <div class="card p-4 text-center sm:col-span-2 lg:col-span-3">
+                     <div class="card p-4 text-center">
+                        <h3 class="text-sm font-medium text-gray-500">Estimated Jobs Created</h3>
+                        <p id="jobsCreated" class="text-2xl font-bold text-gray-800"></p>
+                    </div>
+                    <div class="card p-4 text-center">
+                        <h3 class="text-sm font-medium text-gray-500">Required Land Use</h3>
+                        <p id="landUse" class="text-2xl font-bold text-gray-800"></p>
+                    </div>
+                    <div class="card p-4 text-center">
+                        <h3 class="text-sm font-medium text-gray-500">Grid Resiliency Score</h3>
+                        <p id="resiliencyScore" class="text-2xl font-bold text-gray-800"></p>
+                    </div>
+                    <div class="card p-4 text-center col-span-2 md:col-span-4">
                         <h3 class="text-sm font-medium text-gray-500">Annual Emissions</h3>
                         <p id="totalEmissions" class="text-2xl font-bold text-gray-800"></p>
                     </div>
@@ -339,7 +356,7 @@
                 <!-- Tabs for Charts and Tables -->
                 <div class="card">
                     <div class="border-b border-gray-200">
-                        <nav class="flex flex-wrap -mb-px overflow-x-auto" id="tab-nav">
+                        <nav class="flex flex-wrap items-center gap-2 p-4" id="tab-nav">
                             <button class="tab-button active" data-tab="charts">Visualizations</button>
                             <button class="tab-button" data-tab="spug">SPUG Hybridization</button>
                             <button class="tab-button" data-tab="dispatch">WESM Dispatch</button>
@@ -422,22 +439,112 @@
     document.addEventListener('DOMContentLoaded', function () {
         // --- DATA & CONFIGURATION ---
         const techData = {
-            'Coal':         { color: '#4b5563', capex: 120000, opex: 2500, cf: 0.85, fuel_kwh: 2.5, isVRE: false, co2_factor: 950, is_imported: true, is_synchronous: true, is_renewable: false },
-            'Natural Gas':  { color: '#f59e0b', capex: 50000,  opex: 1500, cf: 0.70, fuel_kwh: 4.0, isVRE: false, co2_factor: 450, is_imported: true, is_synchronous: true, is_renewable: false },
-            'Hydro':        { color: '#3b82f6', capex: 276675, opex: 2000, cf: 0.45, fuel_kwh: 0, isVRE: false, co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: true },
-            'Geothermal':   { color: '#ef4444', capex: 172700, opex: 2800, cf: 0.90, fuel_kwh: 0, isVRE: false, co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: true },
-            'Solar':        { color: '#facc15', capex: 62000,  opex: 1000, cf: 0.20, fuel_kwh: 0, isVRE: true, co2_factor: 0, is_imported: false, is_synchronous: false, is_renewable: true },
-            'Wind':         { color: '#22c55e', capex: 180000, opex: 2000, cf: 0.35, fuel_kwh: 0, isVRE: true, co2_factor: 0, is_imported: false, is_synchronous: false, is_renewable: true },
-            'Biomass':      { color: '#84cc16', capex: 170000, opex: 4000, cf: 0.80, fuel_kwh: 2.0, isVRE: false, co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: true },
-            'Oil-based':    { color: '#7e22ce', capex: 30000,  opex: 1000, cf: 0.30, fuel_kwh: 8.0, isVRE: false, co2_factor: 750, is_imported: true, is_synchronous: true, is_renewable: false },
-            'OffshoreWind': { color: '#06b6d4', capex: 250000, opex: 3500, cf: 0.50, fuel_kwh: 0, isVRE: true, name: 'Offshore Wind', co2_factor: 0, is_imported: false, is_synchronous: false, is_renewable: true },
-            'Nuclear':      { color: '#a855f7', capex: 350000, opex: 4000, cf: 0.90, fuel_kwh: 0, isVRE: false, name: 'Nuclear', co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: false },
-            'Nuclear_SMR':  { color: '#a855f7', capex: 400000, opex: 4500, cf: 0.90, fuel_kwh: 0, isVRE: false, name: 'Nuclear (SMR)', co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: false },
-            'Nuclear_BNPP': { color: '#a855f7', capex: 220000, opex: 5000, cf: 0.90, fuel_kwh: 0, isVRE: false, name: 'Nuclear (BNPP)', co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: false },
-            'SolarBESS':    { color: '#eab308', capex: 95000, opex: 1500, cf: 0.20, fuel_kwh: 0, isVRE: true, name: 'Solar + BESS', co2_factor: 0, is_imported: false, is_synchronous: false, is_renewable: true }
+            'Coal':         { color: '#4b5563', capex: 120000, opex: 2500, cf: 0.85, fuel_kwh: 2.5, isVRE: false, co2_factor: 950, is_imported: true, is_synchronous: true, is_renewable: false, name: 'Coal', jobs_construction_mw: 5.1, jobs_om_mw: 0.2, land_use_mw_ha: 0.5 },
+            'NaturalGas':   { color: '#f59e0b', capex: 50000,  opex: 1500, cf: 0.70, fuel_kwh: 4.0, isVRE: false, co2_factor: 450, is_imported: true, is_synchronous: true, is_renewable: false, name: 'Natural Gas', jobs_construction_mw: 2.5, jobs_om_mw: 0.1, land_use_mw_ha: 0.3 },
+            'LNG':          { color: '#d97706', capex: 55000,  opex: 1600, cf: 0.70, fuel_kwh: 4.2, isVRE: false, co2_factor: 450, is_imported: true, is_synchronous: true, is_renewable: false, name: 'LNG', jobs_construction_mw: 2.7, jobs_om_mw: 0.1, land_use_mw_ha: 0.4 },
+            'Hydro':        { color: '#3b82f6', capex: 276675, opex: 2000, cf: 0.45, fuel_kwh: 0, isVRE: false, co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: true, name: 'Hydro', jobs_construction_mw: 4.0, jobs_om_mw: 0.15, land_use_mw_ha: 10.0 },
+            'Geothermal':   { color: '#ef4444', capex: 172700, opex: 2800, cf: 0.90, fuel_kwh: 0, isVRE: false, co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: true, name: 'Geothermal', jobs_construction_mw: 8.0, jobs_om_mw: 0.3, land_use_mw_ha: 1.0 },
+            'Solar':        { color: '#facc15', capex: 62000,  opex: 1000, cf: 0.20, fuel_kwh: 0, isVRE: true, co2_factor: 0, is_imported: false, is_synchronous: false, is_renewable: true, name: 'Solar', jobs_construction_mw: 9.5, jobs_om_mw: 0.1, land_use_mw_ha: 2.0 },
+            'Wind':         { color: '#22c55e', capex: 180000, opex: 2000, cf: 0.35, fuel_kwh: 0, isVRE: true, co2_factor: 0, is_imported: false, is_synchronous: false, is_renewable: true, name: 'Onshore Wind', jobs_construction_mw: 7.0, jobs_om_mw: 0.3, land_use_mw_ha: 15.0 },
+            'Biomass':      { color: '#84cc16', capex: 170000, opex: 4000, cf: 0.80, fuel_kwh: 2.0, isVRE: false, co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: true, name: 'Biomass', jobs_construction_mw: 8.5, jobs_om_mw: 1.2, land_use_mw_ha: 20.0 },
+            'Oil-based':    { color: '#7e22ce', capex: 30000,  opex: 1000, cf: 0.30, fuel_kwh: 8.0, isVRE: false, co2_factor: 750, is_imported: true, is_synchronous: true, is_renewable: false, name: 'Diesel', jobs_construction_mw: 1.5, jobs_om_mw: 0.2, land_use_mw_ha: 0.2 },
+            'Bunker':       { color: '#a16207', capex: 35000,  opex: 1200, cf: 0.50, fuel_kwh: 9.5, isVRE: false, co2_factor: 800, is_imported: true, is_synchronous: true, is_renewable: false, name: 'Bunker/HFO', jobs_construction_mw: 1.8, jobs_om_mw: 0.2, land_use_mw_ha: 0.2 },
+            'OffshoreWind': { color: '#06b6d4', capex: 250000, opex: 3500, cf: 0.50, fuel_kwh: 0, isVRE: true, name: 'Offshore Wind', co2_factor: 0, is_imported: false, is_synchronous: false, is_renewable: true, jobs_construction_mw: 14.0, jobs_om_mw: 0.5, land_use_mw_ha: 0 },
+            'Nuclear':      { color: '#a855f7', capex: 350000, opex: 4000, cf: 0.90, fuel_kwh: 0, isVRE: false, name: 'Nuclear', co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: false, jobs_construction_mw: 10.0, jobs_om_mw: 0.8, land_use_mw_ha: 0.4 },
+            'Nuclear_SMR':  { color: '#a855f7', capex: 400000, opex: 4500, cf: 0.90, fuel_kwh: 0, isVRE: false, name: 'Nuclear (SMR)', co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: false, jobs_construction_mw: 12.0, jobs_om_mw: 1.0, land_use_mw_ha: 0.1 },
+            'Nuclear_BNPP': { color: '#a855f7', capex: 220000, opex: 5000, cf: 0.90, fuel_kwh: 0, isVRE: false, name: 'Nuclear (BNPP)', co2_factor: 0, is_imported: false, is_synchronous: true, is_renewable: false, jobs_construction_mw: 10.0, jobs_om_mw: 0.8, land_use_mw_ha: 0.4 },
+            'SolarBESS':    { color: '#eab308', capex: 95000, opex: 1500, cf: 0.20, fuel_kwh: 0, isVRE: true, name: 'Solar + BESS', co2_factor: 0, is_imported: false, is_synchronous: false, is_renewable: true, jobs_construction_mw: 10.0, jobs_om_mw: 0.15, land_use_mw_ha: 2.2 }
         };
 
         const specificModels = {
+            'Coal': [
+                { id: 'generic_coal_usc', name: 'Generic USC Coal Plant', capacity: 600 },
+                { id: 'ge_usc_660', name: 'GE Steam Power USC 660MW', capacity: 660 },
+                { id: 'siemens_usc_700', name: 'Siemens SST-6000 USC 700MW', capacity: 700 },
+                { id: 'mhps_usc_650', name: 'MHPS USC Steam Turbine 650MW', capacity: 650 },
+                { id: 'doosan_usc_800', name: 'Doosan Lentjes USC 800MW', capacity: 800 },
+                { id: 'shanghai_elec_usc_1000', name: 'Shanghai Electric USC 1000MW', capacity: 1000 },
+                { id: 'bhel_usc_660', name: 'BHEL USC 660MW', capacity: 660 },
+                { id: 'generic_coal_sc', name: 'Generic SC Coal Plant', capacity: 300 },
+                { id: 'ge_sc_350', name: 'GE Steam Power SC 350MW', capacity: 350 },
+                { id: 'siemens_sc_300', name: 'Siemens SST-3000 SC 300MW', capacity: 300 },
+                { id: 'mhps_sc_330', name: 'MHPS SC Steam Turbine 330MW', capacity: 330 },
+                { id: 'doosan_sc_300', name: 'Doosan Lentjes SC 300MW', capacity: 300 },
+                { id: 'harbin_sc_600', name: 'Harbin Electric SC 600MW', capacity: 600 },
+                { id: 'dongfang_sc_350', name: 'Dongfang Electric SC 350MW', capacity: 350 },
+                { id: 'generic_coal_cfb', name: 'Generic CFB Coal Plant', capacity: 150 },
+                { id: 'sumitomo_cfb_150', name: 'Sumitomo SHI FW CFB 150MW', capacity: 150 },
+            ],
+            'NaturalGas': [
+                { id: 'generic_ccgt', name: 'Generic CCGT H-Class', capacity: 600 },
+                { id: 'ge_9ha_02_cc', name: 'GE 9HA.02 CCGT', capacity: 826 },
+                { id: 'ge_7ha_03_cc', name: 'GE 7HA.03 CCGT', capacity: 640 },
+                { id: 'siemens_sgt6_9000hl_cc', name: 'Siemens SGT6-9000HL CCGT', capacity: 870 },
+                { id: 'siemens_sgt5_8000h_cc', name: 'Siemens SGT5-8000H CCGT', capacity: 665 },
+                { id: 'mhps_m501jac_cc', name: 'MHPS M501JAC CCGT', capacity: 540 },
+                { id: 'mhps_m701jac_cc', name: 'MHPS M701JAC CCGT', capacity: 710 },
+                { id: 'ansaldo_gt36_cc', name: 'Ansaldo GT36 CCGT', capacity: 750 },
+                { id: 'generic_ocgt', name: 'Generic OCGT F-Class', capacity: 200 },
+                { id: 'ge_7f_04_oc', name: 'GE 7F.04 OCGT', capacity: 239 },
+                { id: 'siemens_sgt6_5000f_oc', name: 'Siemens SGT6-5000F OCGT', capacity: 250 },
+                { id: 'mhps_m501f_oc', name: 'MHPS M501F OCGT', capacity: 283 },
+                { id: 'ge_lm6000', name: 'GE LM6000 Aeroderivative', capacity: 50 },
+                { id: 'ge_lm2500', name: 'GE LM2500 Aeroderivative', capacity: 34 },
+                { id: 'siemens_sgt_a35', name: 'Siemens SGT-A35 Aeroderivative', capacity: 38 },
+                { id: 'rr_trent60', name: 'Rolls-Royce Trent 60 Aeroderivative', capacity: 66 },
+            ],
+            'LNG': [
+                 { id: 'generic_ccgt', name: 'Generic CCGT H-Class', capacity: 600 },
+                { id: 'ge_9ha_02_cc', name: 'GE 9HA.02 CCGT', capacity: 826 },
+                { id: 'ge_7ha_03_cc', name: 'GE 7HA.03 CCGT', capacity: 640 },
+                { id: 'siemens_sgt6_9000hl_cc', name: 'Siemens SGT6-9000HL CCGT', capacity: 870 },
+                { id: 'siemens_sgt5_8000h_cc', name: 'Siemens SGT5-8000H CCGT', capacity: 665 },
+                { id: 'mhps_m501jac_cc', name: 'MHPS M501JAC CCGT', capacity: 540 },
+                { id: 'mhps_m701jac_cc', name: 'MHPS M701JAC CCGT', capacity: 710 },
+                { id: 'ansaldo_gt36_cc', name: 'Ansaldo GT36 CCGT', capacity: 750 },
+                { id: 'generic_ocgt', name: 'Generic OCGT F-Class', capacity: 200 },
+                { id: 'ge_7f_04_oc', name: 'GE 7F.04 OCGT', capacity: 239 },
+                { id: 'siemens_sgt6_5000f_oc', name: 'Siemens SGT6-5000F OCGT', capacity: 250 },
+                { id: 'mhps_m501f_oc', name: 'MHPS M501F OCGT', capacity: 283 },
+                { id: 'ge_lm6000', name: 'GE LM6000 Aeroderivative', capacity: 50 },
+                { id: 'ge_lm2500', name: 'GE LM2500 Aeroderivative', capacity: 34 },
+                { id: 'siemens_sgt_a35', name: 'Siemens SGT-A35 Aeroderivative', capacity: 38 },
+                { id: 'rr_trent60', name: 'Rolls-Royce Trent 60 Aeroderivative', capacity: 66 },
+            ],
+            'Oil-based': [ // Diesel
+                { id: 'generic_diesel', name: 'Generic Diesel Engine Plant', capacity: 20 },
+                { id: 'wartsila_50df', name: 'Wärtsilä 50DF', capacity: 18.5 },
+                { id: 'wartsila_34df', name: 'Wärtsilä 34DF', capacity: 9.7 },
+                { id: 'man_18v51_60df', name: 'MAN 18V51/60DF', capacity: 20.7 },
+                { id: 'man_12v51_60df', name: 'MAN 12V51/60DF', capacity: 13.8 },
+                { id: 'cat_c175_20', name: 'CAT C175-20', capacity: 4.0 },
+                { id: 'cat_3616', name: 'CAT 3616', capacity: 6.0 },
+                { id: 'cummins_qsk95', name: 'Cummins QSK95', capacity: 3.5 },
+                { id: 'cummins_qsk60', name: 'Cummins QSK60', capacity: 2.2 },
+                { id: 'mtu_20v4000', name: 'MTU 20V4000', capacity: 3.3 },
+                { id: 'jenbacher_j920', name: 'Jenbacher J920 FleXtra', capacity: 10.4 },
+                { id: 'himsen_h32_40v', name: 'Hyundai-Himsen H32/40V', capacity: 9.0 },
+                { id: 'doosan_v222til', name: 'Doosan V222TIL', capacity: 0.8 },
+                { id: 'mitsubishi_s16r', name: 'Mitsubishi S16R-PTA', capacity: 1.8 },
+                { id: 'ge_jenbacher_j624', name: 'GE Jenbacher J624', capacity: 4.5 },
+            ],
+            'Bunker': [ // HFO
+                { id: 'generic_hfo', name: 'Generic HFO Engine Plant', capacity: 50 },
+                { id: 'wartsila_46f', name: 'Wärtsilä 46F', capacity: 20.7 },
+                { id: 'wartsila_32', name: 'Wärtsilä 32', capacity: 9.6 },
+                { id: 'man_18v48_60ts', name: 'MAN 18V48/60TS', capacity: 21.6 },
+                { id: 'man_9l58_64', name: 'MAN 9L58/64', capacity: 12.6 },
+                { id: 'cat_mak_m43', name: 'CAT MaK M43C', capacity: 16.2 },
+                { id: 'cat_mak_m32', name: 'CAT MaK M32C', capacity: 8.7 },
+                { id: 'cummins_qsk78', name: 'Cummins QSK78 (HFO adapted)', capacity: 2.6 },
+                { id: 'himsen_h21_32', name: 'Hyundai-Himsen H21/32', capacity: 1.8 },
+                { id: 'himsen_h25_33', name: 'Hyundai-Himsen H25/33', capacity: 2.7 },
+                { id: 'daihatsu_dk_36', name: 'Daihatsu DK-36', capacity: 6.6 },
+                { id: 'yanmar_ey33', name: 'Yanmar EY33', capacity: 5.3 },
+                { id: 'niigata_28ahx', name: 'Niigata 28AHX', capacity: 3.7 },
+                { id: 'stx_k32s', name: 'STX-MAN K32S', capacity: 10.8 },
+                { id: 'doosan_h25_33', name: 'Doosan-MAN H25/33', capacity: 2.7 },
+            ],
             'Solar': [ { id: 'generic', name: 'Generic Utility-Scale', capacity: 100 } ],
             'Wind': [ { id: 'generic', name: 'Generic Onshore Wind', capacity: 100 }, { id: 'vestas_v112', name: 'Vestas V112', capacity: 3.45 }, { id: 'vestas_v136', name: 'Vestas V136', capacity: 4.2 }, { id: 'vestas_v150', name: 'Vestas V150', capacity: 4.2 }, { id: 'vestas_v162', name: 'Vestas V162', capacity: 6.2 }, { id: 'sgre_4_5_125', name: 'SGRE SG 4.5-125', capacity: 4.5 }, { id: 'sgre_5_8_145', name: 'SGRE SG 5.8-145', capacity: 5.8 }, { id: 'sgre_6_6_155', name: 'SGRE SG 6.6-155', capacity: 6.6 }, { id: 'sgre_8_0_170', name: 'SGRE SG 8.0-170', capacity: 8.0 }, { id: 'gamesa_g90', name: 'Gamesa G90', capacity: 2.0 }, { id: 'ge_4_8_129', name: 'GE 4.8-129', capacity: 4.8 }, { id: 'ge_cypress', name: 'GE Cypress', capacity: 5.5 }, { id: 'goldwind_gw82', name: 'Goldwind GW82', capacity: 1.5 }, { id: 'goldwind_gw136', name: 'Goldwind GW136', capacity: 3.4 }, { id: 'goldwind_gw165', name: 'Goldwind GW165', capacity: 6.0 }, { id: 'goldwind_gw175', name: 'Goldwind GW175', capacity: 8.0 }, { id: 'nordex_n131', name: 'Nordex N131', capacity: 3.9 }, { id: 'nordex_n149', name: 'Nordex N149', capacity: 5.5 }, { id: 'nordex_n163', name: 'Nordex N163', capacity: 6.5 }, { id: 'envision_en156', name: 'Envision EN156', capacity: 4.5 }, { id: 'envision_en171', name: 'Envision EN171', capacity: 6.5 }, { id: 'mingyang_myse_7_25_171', name: 'Mingyang MySE 7.25-171', capacity: 7.25 }, { id: 'suzlon_s120', name: 'Suzlon S120', capacity: 2.1 }, { id: 'windey_wd160', name: 'Windey WD160', capacity: 5.0 }, { id: 'sany_se_17260', name: 'Sany SE-17260', capacity: 6.0 }, { id: 'united_power_up5500', name: 'United Power UP5500-155', capacity: 5.5 } ],
             'OffshoreWind': [ { id: 'generic', name: 'Generic Offshore Wind', capacity: 200 }, { id: 'vestas_v236', name: 'Vestas V236', capacity: 15.0 }, { id: 'sgre_14_222', name: 'SGRE SG 14-222', capacity: 14.0 }, { id: 'sgre_14_236', name: 'SGRE SG 14-236', capacity: 14.0 }, { id: 'ge_haliade_x', name: 'GE Haliade-X', capacity: 14.7 }, { id: 'mingyang_myse_14_236', name: 'Mingyang MySE 14-236', capacity: 14.0 }, { id: 'mingyang_myse_16_260', name: 'Mingyang MySE 16-260', capacity: 16.0 }, { id: 'shanghai_electric_sew11', name: 'Shanghai Electric SEW11.0-208', capacity: 11.0 }, { id: 'cssc_haizhuang_h210', name: 'CSSC Haizhuang H210', capacity: 10.0 } ],
@@ -457,20 +564,20 @@
 
         const baselineGrids = {
             as_of_april_2025: {
-                national: [ { tech: 'Coal', capacity: 13006 }, { tech: 'Oil-based', capacity: 3404 }, { tech: 'Natural Gas', capacity: 4612 }, { tech: 'Biomass', capacity: 779 }, { tech: 'Geothermal', capacity: 1987 }, { tech: 'Solar', capacity: 3126 }, { tech: 'Hydro', capacity: 3844 }, { tech: 'Wind', capacity: 427 } ],
-                luzon: [ { tech: 'Coal', capacity: 9392 }, { tech: 'Oil-based', capacity: 2054 }, { tech: 'Natural Gas', capacity: 4611 }, { tech: 'Biomass', capacity: 215 }, { tech: 'Geothermal', capacity: 900 }, { tech: 'Solar', capacity: 2503 }, { tech: 'Hydro', capacity: 2565 }, { tech: 'Wind', capacity: 337 } ],
-                visayas: [ { tech: 'Coal', capacity: 1346 }, { tech: 'Oil-based', capacity: 517 }, { tech: 'Natural Gas', capacity: 1 }, { tech: 'Biomass', capacity: 442 }, { tech: 'Geothermal', capacity: 975 }, { tech: 'Solar', capacity: 535 }, { tech: 'Hydro', capacity: 55 }, { tech: 'Wind', capacity: 90 } ],
-                mindanao: [ { tech: 'Coal', capacity: 2268 }, { tech: 'Oil-based', capacity: 833 }, { tech: 'Natural Gas', capacity: 0 }, { tech: 'Biomass', capacity: 122 }, { tech: 'Geothermal', capacity: 112 }, { tech: 'Solar', capacity: 88 }, { tech: 'Hydro', capacity: 1224 }, { tech: 'Wind', capacity: 0 } ]
+                national: [ { tech: 'Coal', capacity: 13006 }, { tech: 'Oil-based', capacity: 3404 }, { tech: 'NaturalGas', capacity: 4612 }, { tech: 'Biomass', capacity: 779 }, { tech: 'Geothermal', capacity: 1987 }, { tech: 'Solar', capacity: 3126 }, { tech: 'Hydro', capacity: 3844 }, { tech: 'Wind', capacity: 427 } ],
+                luzon: [ { tech: 'Coal', capacity: 9392 }, { tech: 'Oil-based', capacity: 2054 }, { tech: 'NaturalGas', capacity: 4611 }, { tech: 'Biomass', capacity: 215 }, { tech: 'Geothermal', capacity: 900 }, { tech: 'Solar', capacity: 2503 }, { tech: 'Hydro', capacity: 2565 }, { tech: 'Wind', capacity: 337 } ],
+                visayas: [ { tech: 'Coal', capacity: 1346 }, { tech: 'Oil-based', capacity: 517 }, { tech: 'NaturalGas', capacity: 1 }, { tech: 'Biomass', capacity: 442 }, { tech: 'Geothermal', capacity: 975 }, { tech: 'Solar', capacity: 535 }, { tech: 'Hydro', capacity: 55 }, { tech: 'Wind', capacity: 90 } ],
+                mindanao: [ { tech: 'Coal', capacity: 2268 }, { tech: 'Oil-based', capacity: 833 }, { tech: 'NaturalGas', capacity: 0 }, { tech: 'Biomass', capacity: 122 }, { tech: 'Geothermal', capacity: 112 }, { tech: 'Solar', capacity: 88 }, { tech: 'Hydro', capacity: 1224 }, { tech: 'Wind', capacity: 0 } ]
             },
-            projected_2024: { national: [ { tech: 'Coal', capacity: 12406 }, { tech: 'Natural Gas', capacity: 3453 }, { tech: 'Hydro', capacity: 3830 }, { tech: 'Geothermal', capacity: 1957 }, { tech: 'Solar', capacity: 1663 },  { tech: 'Wind', capacity: 427 }, { tech: 'Biomass', capacity: 484 }, { tech: 'Oil-based', capacity: 2448 }, ], luzon: [ { tech: 'Coal', capacity: 10400 }, { tech: 'Natural Gas', capacity: 3453 }, { tech: 'Hydro', capacity: 2600 }, { tech: 'Geothermal', capacity: 1250 }, { tech: 'Solar', capacity: 1200 },  { tech: 'Wind', capacity: 400 }, { tech: 'Biomass', capacity: 300 }, { tech: 'Oil-based', capacity: 1800 }, ], visayas: [ { tech: 'Coal', capacity: 1000 }, { tech: 'Hydro', capacity: 550 }, { tech: 'Geothermal', capacity: 600 }, { tech: 'Solar', capacity: 400 }, { tech: 'Wind', capacity: 27 }, { tech: 'Biomass', capacity: 100 }, { tech: 'Oil-based', capacity: 428 }, ], mindanao: [ { tech: 'Coal', capacity: 1006 }, { tech: 'Hydro', capacity: 680 }, { tech: 'Geothermal', capacity: 107 }, { tech: 'Solar', capacity: 63 }, { tech: 'Biomass', capacity: 84 }, { tech: 'Oil-based', capacity: 220 }, ] },
-            baseline_2022: { national: [ { tech: 'Coal', capacity: 12000 }, { tech: 'Natural Gas', capacity: 3500 }, { tech: 'Hydro', capacity: 3750 }, { tech: 'Geothermal', capacity: 1930 }, { tech: 'Solar', capacity: 950 },  { tech: 'Wind', capacity: 420 }, { tech: 'Biomass', capacity: 230 }, { tech: 'Oil-based', capacity: 2500 }, ], luzon: [ { tech: 'Coal', capacity: 9500 }, { tech: 'Natural Gas', capacity: 3500 }, { tech: 'Hydro', capacity: 2500 }, { tech: 'Geothermal', capacity: 1200 }, { tech: 'Solar', capacity: 700 },  { tech: 'Wind', capacity: 380 }, { tech: 'Biomass', capacity: 150 }, { tech: 'Oil-based', capacity: 1800 }, ], visayas: [ { tech: 'Coal', capacity: 1500 }, { tech: 'Hydro', capacity: 500 }, { tech: 'Geothermal', capacity: 600 }, { tech: 'Solar', capacity: 200 }, { tech: 'Wind', capacity: 40 }, { tech: 'Biomass', capacity: 50 }, { tech: 'Oil-based', capacity: 400 }, ], mindanao: [ { tech: 'Coal', capacity: 1000 }, { tech: 'Hydro', capacity: 750 }, { tech: 'Geothermal', capacity: 130 }, { tech: 'Solar', capacity: 50 }, { tech: 'Biomass', capacity: 30 }, { tech: 'Oil-based', capacity: 300 }, ] }
+            projected_2024: { national: [ { tech: 'Coal', capacity: 12406 }, { tech: 'NaturalGas', capacity: 3453 }, { tech: 'Hydro', capacity: 3830 }, { tech: 'Geothermal', capacity: 1957 }, { tech: 'Solar', capacity: 1663 },  { tech: 'Wind', capacity: 427 }, { tech: 'Biomass', capacity: 484 }, { tech: 'Oil-based', capacity: 2448 }, ], luzon: [ { tech: 'Coal', capacity: 10400 }, { tech: 'NaturalGas', capacity: 3453 }, { tech: 'Hydro', capacity: 2600 }, { tech: 'Geothermal', capacity: 1250 }, { tech: 'Solar', capacity: 1200 },  { tech: 'Wind', capacity: 400 }, { tech: 'Biomass', capacity: 300 }, { tech: 'Oil-based', capacity: 1800 }, ], visayas: [ { tech: 'Coal', capacity: 1000 }, { tech: 'Hydro', capacity: 550 }, { tech: 'Geothermal', capacity: 600 }, { tech: 'Solar', capacity: 400 }, { tech: 'Wind', capacity: 27 }, { tech: 'Biomass', capacity: 100 }, { tech: 'Oil-based', capacity: 428 }, ], mindanao: [ { tech: 'Coal', capacity: 1006 }, { tech: 'Hydro', capacity: 680 }, { tech: 'Geothermal', capacity: 107 }, { tech: 'Solar', capacity: 63 }, { tech: 'Biomass', capacity: 84 }, { tech: 'Oil-based', capacity: 220 }, ] },
+            baseline_2022: { national: [ { tech: 'Coal', capacity: 12000 }, { tech: 'NaturalGas', capacity: 3500 }, { tech: 'Hydro', capacity: 3750 }, { tech: 'Geothermal', capacity: 1930 }, { tech: 'Solar', capacity: 950 },  { tech: 'Wind', capacity: 420 }, { tech: 'Biomass', capacity: 230 }, { tech: 'Oil-based', capacity: 2500 }, ], luzon: [ { tech: 'Coal', capacity: 9500 }, { tech: 'NaturalGas', capacity: 3500 }, { tech: 'Hydro', capacity: 2500 }, { tech: 'Geothermal', capacity: 1200 }, { tech: 'Solar', capacity: 700 },  { tech: 'Wind', capacity: 380 }, { tech: 'Biomass', capacity: 150 }, { tech: 'Oil-based', capacity: 1800 }, ], visayas: [ { tech: 'Coal', capacity: 1500 }, { tech: 'Hydro', capacity: 500 }, { tech: 'Geothermal', capacity: 600 }, { tech: 'Solar', capacity: 200 }, { tech: 'Wind', capacity: 40 }, { tech: 'Biomass', capacity: 50 }, { tech: 'Oil-based', capacity: 400 }, ], mindanao: [ { tech: 'Coal', capacity: 1000 }, { tech: 'Hydro', capacity: 750 }, { tech: 'Geothermal', capacity: 130 }, { tech: 'Solar', capacity: 50 }, { tech: 'Biomass', capacity: 30 }, { tech: 'Oil-based', capacity: 300 }, ] }
         };
         
         let currentBaseline = baselineGrids.as_of_april_2025.national;
 
         const preDefinedScenarios = {
             'custom': [],
-            'committed_projects': [ { tech: 'Coal', capacity: 2305 }, { tech: 'Natural Gas', capacity: 6070 }, { tech: 'Oil-based', capacity: 87 }, { tech: 'Geothermal', capacity: 122 }, { tech: 'Hydro', capacity: 271 }, { tech: 'Solar', capacity: 3391 }, { tech: 'Wind', capacity: 273 }, { tech: 'Biomass', capacity: 81 }, ],
+            'committed_projects': [ { tech: 'Coal', capacity: 2305 }, { tech: 'NaturalGas', capacity: 6070 }, { tech: 'Oil-based', capacity: 87 }, { tech: 'Geothermal', capacity: 122 }, { tech: 'Hydro', capacity: 271 }, { tech: 'Solar', capacity: 3391 }, { tech: 'Wind', capacity: 273 }, { tech: 'Biomass', capacity: 81 }, ],
             'gea1_awarded': [ { tech: 'Solar', capacity: 1490 }, { tech: 'Wind', capacity: 374 }, { tech: 'Hydro', capacity: 99 }, { tech: 'Biomass', capacity: 3 } ],
             'gea2_awarded': [ { tech: 'Solar', capacity: 1969 }, { tech: 'Wind', capacity: 1462 }, { tech: 'Biomass', capacity: 230 } ],
             'gea3_awarded': [ { tech: 'Hydro', capacity: 6400 }, { tech: 'Geothermal', capacity: 81 } ],
@@ -480,9 +587,9 @@
             'gea4_to_5_target': [ { tech: 'Solar', capacity: 7000 }, { tech: 'Wind', capacity: 2400 }, { tech: 'SolarBESS', capacity: 1100 }, { tech: 'OffshoreWind', capacity: 3300 } ],
             'gea1_to_5_total': [ { tech: 'Solar', capacity: 10459 }, { tech: 'Wind', capacity: 4236 }, { tech: 'Hydro', capacity: 6499 }, { tech: 'Biomass', capacity: 233 }, { tech: 'Geothermal', capacity: 81 }, { tech: 'SolarBESS', capacity: 1100 }, { tech: 'OffshoreWind', capacity: 3300 } ],
             'gea1_to_5_50_percent': [ { tech: 'Solar', capacity: 5229.5 }, { tech: 'Wind', capacity: 2118 }, { tech: 'Hydro', capacity: 3249.5 }, { tech: 'Biomass', capacity: 116.5 }, { tech: 'Geothermal', capacity: 40.5 }, { tech: 'SolarBESS', capacity: 550 }, { tech: 'OffshoreWind', capacity: 1650 } ],
-            'pep_ref': [ { tech: 'Solar', capacity: 54948 }, { tech: 'Wind', capacity: 31842 }, { tech: 'Hydro', capacity: 10266 }, { tech: 'Geothermal', capacity: 1355 }, { tech: 'Natural Gas', capacity: 21881 }, { tech: 'Coal', capacity: 2305 } ],
-            'pep_ces1': [ { tech: 'Solar', capacity: 53164 }, { tech: 'Wind', capacity: 13842 }, { tech: 'OffshoreWind', capacity: 19500 }, { tech: 'Hydro', capacity: 6800 }, { tech: 'Geothermal', capacity: 1005 }, { tech: 'Nuclear', capacity: 4800 }, { tech: 'Natural Gas', capacity: 15989 } ],
-            'pep_ces2': [ { tech: 'Solar', capacity: 34164 }, { tech: 'Wind', capacity: 15408 }, { tech: 'OffshoreWind', capacity: 50100 }, { tech: 'Hydro', capacity: 6181 }, { tech: 'Geothermal', capacity: 1005 }, { tech: 'Nuclear', capacity: 4800 }, { tech: 'Natural Gas', capacity: 18857 } ],
+            'pep_ref': [ { tech: 'Solar', capacity: 54948 }, { tech: 'Wind', capacity: 31842 }, { tech: 'Hydro', capacity: 10266 }, { tech: 'Geothermal', capacity: 1355 }, { tech: 'NaturalGas', capacity: 21881 }, { tech: 'Coal', capacity: 2305 } ],
+            'pep_ces1': [ { tech: 'Solar', capacity: 53164 }, { tech: 'Wind', capacity: 13842 }, { tech: 'OffshoreWind', capacity: 19500 }, { tech: 'Hydro', capacity: 6800 }, { tech: 'Geothermal', capacity: 1005 }, { tech: 'Nuclear', capacity: 4800 }, { tech: 'NaturalGas', capacity: 15989 } ],
+            'pep_ces2': [ { tech: 'Solar', capacity: 34164 }, { tech: 'Wind', capacity: 15408 }, { tech: 'OffshoreWind', capacity: 50100 }, { tech: 'Hydro', capacity: 6181 }, { tech: 'Geothermal', capacity: 1005 }, { tech: 'Nuclear', capacity: 4800 }, { tech: 'NaturalGas', capacity: 18857 } ],
             'nuclear_bnpp': [ { tech: 'Nuclear_BNPP', capacity: 621 } ],
             'nuclear_2032': [ { tech: 'Nuclear', capacity: 1200 } ],
             'nuclear_2050': [ { tech: 'Nuclear', capacity: 4800 } ],
@@ -576,6 +683,11 @@
         const formatNumber = (num, decimals = 0) => num === null ? 'N/A' : new Intl.NumberFormat('en-US', { maximumFractionDigits: decimals, minimumFractionDigits: decimals }).format(num);
         const formatCurrency = (num, notation = 'standard') => `₱${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2, notation: notation, minimumFractionDigits: 2 }).format(num)}`;
         const formatTons = (num) => `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0, notation: 'compact' }).format(num)} tCO₂`;
+        const dayToDate = (day) => {
+            const date = new Date(new Date().getFullYear(), 0); // start of the year
+            return new Date(date.setDate(day)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        };
+
 
         // --- CORE CALCULATION LOGIC ---
         function calculateSystemMetrics(system, isBaseline = false, sensitivity = {}, contingency = {}) {
@@ -649,11 +761,45 @@
             
             const totalSystemCostPerKwh = blendedGenerationCost + tdCost + ancillaryCost + gridReinforcementCost;
             const totalAnnualSystemCostValue = totalSystemCostPerKwh * forecastedAnnualGeneration * 1e9;
-            const selfSufficiency = totalAnnualGeneration > 0 ? (totalIndigenousGeneration / totalAnnualGeneration) * 100 : 0;
             const systemInertia = totalCapacity > 0 ? (totalSynchronousCapacity / totalCapacity) * 100 : 0;
             const reShare = totalAnnualGeneration > 0 ? (totalAnnualREGeneration / totalAnnualGeneration) * 100 : 0;
 
-            return { totalSystemCostPerKwh, totalAnnualSystemCost: totalAnnualSystemCostValue, details: detailedResults, totalCapacity, blendedGenerationCost, tdCost, ancillaryCost, gridReinforcementCost, totalAnnualGeneration: forecastedAnnualGeneration, totalEmissions, totalImportedFuelCost, selfSufficiency, systemInertia, reShare };
+            // --- New Metric Calculations ---
+            let totalJobs = 0;
+            let totalLandUse = 0;
+            scenarioAdditions.forEach(plant => {
+                const tech = techData[plant.tech];
+                totalJobs += (plant.capacity * tech.jobs_construction_mw) + (plant.capacity * tech.jobs_om_mw);
+                totalLandUse += (plant.capacity * tech.land_use_mw_ha);
+            });
+
+            // Grid Resiliency Score (0-10)
+            const diversityScore = (() => {
+                const proportions = {};
+                detailedResults.forEach(d => {
+                    proportions[d.techName] = (proportions[d.techName] || 0) + d.annualGenerationGWh;
+                });
+                let shannonIndex = 0;
+                Object.values(proportions).forEach(gwh => {
+                    if (gwh > 0) {
+                        const p = gwh / totalAnnualGeneration;
+                        shannonIndex -= p * Math.log(p);
+                    }
+                });
+                // Normalize to a 0-1 scale (assuming max diversity is around ln(10 types) ~ 2.3)
+                return Math.min(shannonIndex / 2.3, 1);
+            })();
+
+            const selfSufficiency = totalAnnualGeneration > 0 ? (totalIndigenousGeneration / totalAnnualGeneration) * 100 : 0;
+            const resiliencyScore = (diversityScore * 3) + ((selfSufficiency / 100) * 4) + ((systemInertia / 100) * 3);
+            
+            return { 
+                totalSystemCostPerKwh, totalAnnualSystemCost: totalAnnualSystemCostValue, details: detailedResults, 
+                totalCapacity, blendedGenerationCost, tdCost, ancillaryCost, gridReinforcementCost, 
+                totalAnnualGeneration: forecastedAnnualGeneration, totalEmissions, totalImportedFuelCost, 
+                systemInertia, reShare,
+                totalJobs, totalLandUse, resiliencyScore
+            };
         }
 
         // --- UI UPDATE FUNCTIONS ---
@@ -663,11 +809,10 @@
 
             const baselineMetrics = calculateSystemMetrics(currentBaseline, true);
             const scenarioSystem = [...currentBaseline, ...scenarioAdditions];
-            const scenarioMetrics = calculateSystemMetrics(scenarioSystem);
+            let scenarioMetrics = calculateSystemMetrics(scenarioSystem);
             
             document.getElementById('totalSystemCost').textContent = `${formatCurrency(scenarioMetrics.totalSystemCostPerKwh)}/kWh`;
             document.getElementById('totalEmissions').textContent = formatTons(scenarioMetrics.totalEmissions);
-            document.getElementById('selfSufficiency').textContent = `${scenarioMetrics.selfSufficiency.toFixed(1)}%`;
             document.getElementById('importCost').textContent = `${formatCurrency(scenarioMetrics.totalImportedFuelCost, 'compact')}`;
             document.getElementById('systemInertia').textContent = `${scenarioMetrics.systemInertia.toFixed(1)}%`;
             document.getElementById('reShare').textContent = `${scenarioMetrics.reShare.toFixed(1)}%`;
@@ -679,6 +824,11 @@
             if (tariffImpactValue > 0.1) tariffImpactEl.classList.add('text-red-500');
             else if (tariffImpactValue < -0.1) tariffImpactEl.classList.add('text-green-600');
             else tariffImpactEl.classList.add('text-gray-800');
+
+            // --- Update New Metrics ---
+            document.getElementById('jobsCreated').textContent = formatNumber(scenarioMetrics.totalJobs, 0);
+            document.getElementById('landUse').textContent = `${formatNumber(scenarioMetrics.totalLandUse, 0)} ha`;
+            document.getElementById('resiliencyScore').textContent = `${scenarioMetrics.resiliencyScore.toFixed(1)} / 10`;
 
             populateAllTabs(baselineMetrics, scenarioMetrics);
             updateCharts(baselineMetrics, scenarioMetrics);
@@ -1567,12 +1717,27 @@
         
         function populatePlantTypeDropdown() {
             const plantTypeSelect = dom.inputs.plantType;
-            plantTypeSelect.innerHTML = '';
-            Object.keys(specificModels).forEach(techKey => {
-                const option = document.createElement('option');
-                option.value = techKey;
-                option.textContent = techData[techKey].name || techKey;
-                plantTypeSelect.appendChild(option);
+            plantTypeSelect.innerHTML = ''; // Clear existing options
+
+            const techGroups = {
+                'Conventional': ['Coal', 'NaturalGas', 'LNG', 'Oil-based', 'Bunker'],
+                'Renewable': ['Solar', 'Wind', 'OffshoreWind', 'Hydro', 'Geothermal', 'Biomass'],
+                'Nuclear': ['Nuclear'],
+                'Hybrid/Storage': ['SolarBESS']
+            };
+
+            Object.keys(techGroups).forEach(groupName => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = groupName;
+                techGroups[groupName].forEach(techKey => {
+                    if (specificModels[techKey]) {
+                        const option = document.createElement('option');
+                        option.value = techKey;
+                        option.textContent = techData[techKey].name || techKey;
+                        optgroup.appendChild(option);
+                    }
+                });
+                plantTypeSelect.appendChild(optgroup);
             });
         }
         
