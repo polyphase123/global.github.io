@@ -384,10 +384,6 @@
                                     <h3 class="font-semibold text-center mb-2">CO2 Emissions by Fuel Type (Tons)</h3>
                                     <canvas id="emissionsChart"></canvas>
                                 </div>
-                                <div class="xl:col-span-2">
-                                    <h3 class="font-semibold text-center mb-2">Levelized Cost of Energy by Tech (PhP/kWh)</h3>
-                                    <canvas id="lcoeChart"></canvas>
-                                </div>
                             </div>
                         </div>
                         <!-- SPUG Hybridization Tab -->
@@ -729,7 +725,6 @@
                 const annualFuelCost = annualGenerationKWh * fuelCostKwh;
                 
                 const totalCostForPlant = annualizedCapex + annualOpex + annualFuelCost;
-                const lcoe = annualGenerationKWh > 0 ? totalCostForPlant / annualGenerationKWh : 0;
                 
                 totalCapacity += plant.capacity;
                 totalAnnualGeneration += annualGenerationGWh;
@@ -741,7 +736,7 @@
                 if (tech.is_synchronous) totalSynchronousCapacity += plant.capacity;
                 if (tech.is_renewable) totalAnnualREGeneration += annualGenerationGWh;
 
-                return { techName: tech.name || plant.tech, capacity: plant.capacity, lcoe, annualGenerationGWh, color: tech.color, emissions: plantEmissions, marginalCost: fuelCostKwh + (tech.opex / (8760 * 1000 * (tech.cf || 1))) };
+                return { techName: tech.name || plant.tech, capacity: plant.capacity, annualGenerationGWh, color: tech.color, emissions: plantEmissions, marginalCost: fuelCostKwh + (tech.opex / (8760 * 1000 * (tech.cf || 1))) };
             });
 
             if (dom.inputs.gridUpgrade.value === 'current' && scenarioAdditions.length > 0) {
@@ -906,7 +901,6 @@
             });
             charts.mixChart = new Chart(document.getElementById('mixChart'), { type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] }, options: chartOptions() });
             charts.emissionsChart = new Chart(document.getElementById('emissionsChart'), { type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] }, options: chartOptions() });
-            charts.lcoeChart = new Chart(document.getElementById('lcoeChart'), { type: 'bar', data: { labels: [], datasets: [{ label: 'LCOE (PhP/kWh)', data: [], backgroundColor: [] }] }, options: { ...chartOptions(), indexAxis: 'y', plugins: { legend: { display: false } } } });
         }
 
         function updateCharts(baselineMetrics, scenarioMetrics) {
@@ -923,13 +917,6 @@
             charts.emissionsChart.data.datasets[0].data = emittingTechs.map(d => d.emissions);
             charts.emissionsChart.data.datasets[0].backgroundColor = emittingTechs.map(d => d.color);
             charts.emissionsChart.update();
-
-            // LCOE Chart
-            const sortedByLCOE = [...scenarioMetrics.details].sort((a, b) => a.lcoe - b.lcoe);
-            charts.lcoeChart.data.labels = sortedByLCOE.map(d => d.techName);
-            charts.lcoeChart.data.datasets[0].data = sortedByLCOE.map(d => d.lcoe);
-            charts.lcoeChart.data.datasets[0].backgroundColor = sortedByLCOE.map(d => d.color);
-            charts.lcoeChart.update();
         }
         
         // --- SPUG HYBRIDIZATION TAB ---
@@ -970,10 +957,6 @@
                     </div>
                     <!-- Right: Key Metrics -->
                     <div class="space-y-3">
-                         <div class="card p-3 text-center">
-                            <h4 class="text-sm font-medium text-gray-500">New Hybrid LCOE</h4>
-                            <p id="spugLcoe" class="text-2xl font-bold text-blue-600"></p>
-                        </div>
                         <div class="card p-3 text-center">
                             <h4 class="text-sm font-medium text-gray-500">Annual UCME Savings</h4>
                             <p id="spugSavings" class="text-2xl font-bold text-green-600"></p>
@@ -1055,12 +1038,10 @@
             const annualizedBessCapex = (bessCapacityKWH * BESS_CAPEX_KWH) * CRF;
             const hybridAnnualCost = annualizedReCapex + annualizedBessCapex + (remainingDieselKWH * dieselLcoe);
             
-            const hybridLcoe = hybridAnnualCost / annualDemandKWH;
             const annualSavings = baselineAnnualCost - hybridAnnualCost;
             const dieselDisplacement = (reDisplacedKWH / annualDemandKWH) * 100;
 
             // --- Update Metrics ---
-            document.getElementById('spugLcoe').textContent = `${formatCurrency(hybridLcoe)}/kWh`;
             document.getElementById('spugSavings').textContent = `${formatCurrency(annualSavings, 'compact')}`;
             document.getElementById('spugDisplacement').textContent = `${dieselDisplacement.toFixed(1)}%`;
 
@@ -1242,8 +1223,8 @@
             if (scenarioAdditions.length > 0) {
                 scenarioAdditions.forEach(p => { report += ` - +${p.capacity} MW of ${techData[p.tech].name || p.tech}\n`; });
             } else { report += ` - No custom additions.\n`; }
-            report += `\nDATA TABLE:\nTechnology, Capacity (MW), LCOE (PHP/kWh), Annual Gen (GWh)\n`;
-            scenarioMetrics.details.forEach(d => { report += `${d.techName}, ${formatNumber(d.capacity)}, ${formatNumber(d.lcoe, 2)}, ${formatNumber(d.annualGenerationGWh)}\n`; });
+            report += `\nDATA TABLE:\nTechnology, Capacity (MW), Annual Gen (GWh)\n`;
+            scenarioMetrics.details.forEach(d => { report += `${d.techName}, ${formatNumber(d.capacity)}, ${formatNumber(d.annualGenerationGWh)}\n`; });
             
             dom.reportText.value = report;
             dom.reportModal.classList.remove('hidden');
@@ -1253,8 +1234,8 @@
             const scenarioSystem = [...currentBaseline, ...scenarioAdditions];
             const scenarioMetrics = calculateSystemMetrics(scenarioSystem);
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Technology,Capacity (MW),LCOE (PhP/kWh),Annual Generation (GWh),Annual Emissions (tCO2)\n";
-            scenarioMetrics.details.forEach(row => { csvContent += `${row.techName},${row.capacity},${row.lcoe.toFixed(4)},${row.annualGenerationGWh.toFixed(2)},${row.emissions.toFixed(0)}\n`; });
+            csvContent += "Technology,Capacity (MW),Annual Generation (GWh),Annual Emissions (tCO2)\n";
+            scenarioMetrics.details.forEach(row => { csvContent += `${row.techName},${row.capacity},${row.annualGenerationGWh.toFixed(2)},${row.emissions.toFixed(0)}\n`; });
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
@@ -1285,61 +1266,18 @@
 
         // --- MARKET ANALYSIS ---
         function updateMarketAnalysisTab() {
+            const container = dom.tabContents.market;
             const lastAdded = scenarioAdditions.length > 0 ? scenarioAdditions[scenarioAdditions.length - 1] : null;
             let content = `<h3 class="font-semibold mb-2">Market Competitiveness Analysis</h3>`;
-            const grid = dom.gridSelect.value;
-
-            if (grid === 'national') {
-                 content += `<p class="text-sm text-gray-600">Market analysis is available for regional grids (Luzon, Visayas, Mindanao). Please select a regional grid to view competitiveness insights.</p>`;
-                dom.tabContents.market.innerHTML = content;
-                return;
-            }
-
+            
             if (!lastAdded || dom.scenarioSelect.value !== 'custom') {
                 content += `<p class="text-sm text-gray-600">Add a custom plant to the scenario to analyze its competitiveness.</p>`;
-                dom.tabContents.market.innerHTML = content;
+                container.innerHTML = content;
                 return;
             }
-
-            const plant = { ...lastAdded };
-            const plantMetrics = calculateSystemMetrics([plant], true);
-            const lcoe = plantMetrics.totalSystemCostPerKwh;
-
-            const competitiveRanges = {
-                luzon: { Solar: [3.76, 4.23], Wind: [4.72, 5.22] },
-                visayas: { Solar: [3.58, 3.96], Wind: [3.93, 4.44] },
-                mindanao: { Solar: [4.27, 4.68], Wind: [5.82, 6.68] }
-            };
             
-            const techType = plant.tech.includes('Solar') ? 'Solar' : (plant.tech.includes('Wind') ? 'Wind' : null);
-            const range = techType ? competitiveRanges[grid][techType] : null;
-
-            let insight = 'N/A';
-            let insightColor = 'text-gray-800';
-            if (range) {
-                if (lcoe < range[0]) {
-                    insight = 'Highly Competitive';
-                    insightColor = 'text-green-600';
-                } else if (lcoe <= range[1]) {
-                    insight = 'Competitive';
-                    insightColor = 'text-yellow-600';
-                } else {
-                    insight = 'May Face Challenges';
-                    insightColor = 'text-red-500';
-                }
-            }
-
-            content += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="card p-4 bg-gray-50">
-                <h4 class="font-semibold">Your Project's LCOE</h4>
-                <p class="text-3xl font-bold text-blue-600">${formatCurrency(lcoe)}</p>
-                <p class="text-sm text-gray-500">${formatNumber(plant.capacity)} MW ${techData[plant.tech].name || plant.tech} in ${grid.charAt(0).toUpperCase() + grid.slice(1)}</p>
-            </div><div class="card p-4 bg-gray-50">
-                <h4 class="font-semibold">Regional Competitive LCOE Range</h4>
-                <p class="text-3xl font-bold text-gray-800">${range ? `${formatCurrency(range[0])} - ${formatCurrency(range[1])}` : 'N/A'}</p>
-                <p class="text-sm text-gray-500">For ${techType} projects in this region (Source: Aurora)</p>
-            </div></div>
-            <div class="card p-4 mt-4"><h4 class="font-semibold">Analyst Insight</h4><p class="text-lg font-bold ${insightColor}">${insight}</p><p class="text-sm text-gray-600 mt-1">Based on a comparison with forecasted merchant potential and LCOE of competing projects in the region.</p></div>`;
-            dom.tabContents.market.innerHTML = content;
+            content += `<p class="text-sm text-gray-600">Market analysis for <strong>${lastAdded.capacity} MW ${techData[lastAdded.tech].name || lastAdded.tech}</strong> is based on regional benchmarks.</p>`;
+            container.innerHTML = content;
         }
         
         // --- NEW FEATURES ---
